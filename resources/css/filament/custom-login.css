@@ -1,0 +1,43 @@
+.fi-simple-layout {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fi-simple-main {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 1rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    width: 100%;
+    max-width: 24rem;
+}
+
+.fi-logo {
+    margin-bottom: 2rem;
+}
+
+.fi-input {
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+    padding: 0.75rem;
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+.fi-btn-submit {
+    background-color: #4f46e5;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    width: 100%;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.fi-btn-submit:hover {
+    background-color: #4338ca;
+    transform: translateY(-1px);
+}
