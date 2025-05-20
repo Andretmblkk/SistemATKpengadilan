@@ -2,20 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Request extends Model
 {
-    use HasFactory;
-
     protected $table = 'atk_requests';
 
-    protected $fillable = [
-        'user_id',
-        'status',
-        'notes'
-    ];
+    protected $fillable = ['user_id', 'status', 'notes'];
 
     public function user()
     {
@@ -24,6 +17,8 @@ class Request extends Model
 
     public function items()
     {
-        return $this->hasMany(RequestItem::class);
+        return $this->belongsToMany(Item::class, 'request_items', 'request_id', 'item_id')
+                    ->withPivot('quantity')
+                    ->withTimestamps();
     }
 }

@@ -29,7 +29,8 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->brandName('Sistem ATK PTA Jayapura') // Menambahkan nama aplikasi
+            ->brandName('Sistem ATK PTA Jayapura')
+            ->authGuard('web')
             ->colors([
                 'primary' => Color::Amber,
             ])

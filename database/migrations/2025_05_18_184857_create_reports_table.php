@@ -8,19 +8,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('items', function (Blueprint $table) {
+        Schema::create('reports', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
+            $table->string('title');
             $table->text('description')->nullable();
-            $table->integer('stock')->default(0);
-            $table->decimal('price', 10, 2)->nullable();
-            $table->foreignId('supplier_id')->nullable()->constrained()->onDelete('set null');
+            $table->date('report_date');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('items');
+        Schema::dropIfExists('reports');
     }
 };

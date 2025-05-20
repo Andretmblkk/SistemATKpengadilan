@@ -2,25 +2,21 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Item extends Model
 {
-    use HasFactory;
+    protected $fillable = ['name', 'description', 'stock', 'price', 'supplier_id'];
 
-    protected $fillable = [
-        'name',
-        'description',
-        'category_id',
-        'unit',
-        'stock',
-        'minimum_stock',
-    ];
-
-    public function category()
+    public function supplier()
     {
-        return $this->belongsTo
-        (Category::class);
+        return $this->belongsTo(Supplier::class);
+    }
+
+    public function requests()
+    {
+        return $this->belongsToMany(Request::class, 'request_items', 'item_id', 'request_id')
+                    ->withPivot('quantity')
+                    ->withTimestamps();
     }
 }

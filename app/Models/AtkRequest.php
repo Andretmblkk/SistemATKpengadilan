@@ -2,28 +2,23 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class AtkRequest extends Model
+class Request extends Model
 {
-    use HasFactory;
+    protected $table = 'atk_requests'; // Tentukan tabel secara eksplisit
 
-    protected $fillable = [
-        'user_id',
-        'status',
-        'notes'
-    ];
+    protected $fillable = ['user_id', 'status', 'notes'];
 
-    public function user(): BelongsTo
+    public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function items(): HasMany
+    public function items()
     {
-        return $this->hasMany(RequestItem::class);
+        return $this->belongsToMany(Item::class, 'request_items', 'atk_request_id', 'item_id')
+                    ->withPivot('quantity')
+                    ->withTimestamps();
     }
 }
