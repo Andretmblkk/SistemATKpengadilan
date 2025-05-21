@@ -38,25 +38,40 @@ class ItemResource extends Resource
                     ->label('Item Name')
                     ->required()
                     ->maxLength(255)
-                    ->unique(ignoreRecord: true),
+                    ->unique(ignoreRecord: true)
+                    ->rules(['required', 'string', 'max:255'])
+                    ->dehydrated(true)
+                    ->afterStateUpdated(function ($state, $context) {
+                        \Log::info("Item name input ($context): " . $state);
+                    }),
                 Forms\Components\Textarea::make('description')
                     ->label('Description')
-                    ->columnSpanFull(),
+                    ->columnSpanFull()
+                    ->rules(['nullable', 'string'])
+                    ->dehydrated(true),
                 Forms\Components\TextInput::make('stock')
                     ->label('Stock')
                     ->numeric()
                     ->default(0)
-                    ->required(),
+                    ->required()
+                    ->rules(['required', 'integer', 'min:0'])
+                    ->dehydrated(true),
                 Forms\Components\TextInput::make('price')
                     ->label('Price')
                     ->numeric()
                     ->prefix('Rp')
-                    ->minValue(0),
+                    ->minValue(0)
+                    ->rules(['nullable', 'numeric', 'min:0'])
+                    ->dehydrated(true),
                 Forms\Components\Select::make('supplier_id')
                     ->label('Supplier')
                     ->relationship('supplier', 'name')
-                    ->nullable(),
-            ]);
+                    ->searchable()
+                    ->preload()
+                    ->nullable()
+                    ->rules(['nullable', 'exists:suppliers,id'])
+                    ->dehydrated(true),
+            ])->statePath('data')->reactive();
     }
 
     public static function table(Table $table): Table
@@ -78,6 +93,9 @@ class ItemResource extends Resource
                     ->default('No Supplier')
                     ->searchable(),
             ])
+            ->query(function () {
+                return Item::with('supplier');
+            })
             ->filters([
                 //
             ])

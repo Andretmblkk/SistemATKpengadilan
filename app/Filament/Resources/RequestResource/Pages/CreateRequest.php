@@ -1,40 +1,28 @@
 <?php
-
 namespace App\Filament\Resources\RequestResource\Pages;
 
 use App\Filament\Resources\RequestResource;
 use Filament\Resources\Pages\CreateRecord;
-use App\Models\Request;
-use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
 
 class CreateRequest extends CreateRecord
 {
     protected static string $resource = RequestResource::class;
 
-    protected function handleRecordCreation(array $data): Request
+    protected function beforeCreate(): void
     {
-        // Pastikan data 'items' ada
-        if (!isset($data['items']) || empty($data['items'])) {
-            Notification::make()
-                ->title('Error')
-                ->body('Please add at least one item to the request.')
-                ->danger()
-                ->send();
-            throw new \Exception('No items selected for the request.');
-        }
+        Log::info('Before creating AtkRequest: ' . json_encode($this->data));
+    }
 
-        $request = static::getModel()::create([
-            'user_id' => $data['user_id'],
-            'status' => 'pending',
-            'notes' => $data['notes'] ?? null,
-        ]);
+    protected function afterCreate(): void
+    {
+        Log::info('After creating AtkRequest: ' . json_encode($this->record->toArray()));
+        Log::info('Related items: ' . json_encode($this->record->items->toArray()));
+    }
 
-        $request->items()->sync(
-            collect($data['items'])->mapWithKeys(function ($item) {
-                return [$item['item_id'] => ['quantity' => $item['quantity']]];
-            })->toArray()
-        );
-
-        return $request;
+    protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
+    {
+        Log::info('Handling record creation with data: ' . json_encode($data));
+        return parent::handleRecordCreation($data);
     }
 }

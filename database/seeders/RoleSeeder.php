@@ -7,11 +7,14 @@ use Spatie\Permission\Models\Role;
 
 class RoleSeeder extends Seeder
 {
-    public function run(): void
+    public function run()
     {
-        Role::create(['name' => 'super_admin']);
-        Role::create(['name' => 'admin_gudang']);
-        Role::create(['name' => 'staff']);
-        Role::create(['name' => 'pimpinan']);
+        // Reset cache permission
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        // Buat role yang diperlukan
+        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'staff', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'pimpinan', 'guard_name' => 'web']);
     }
 }

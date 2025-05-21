@@ -4,11 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Request extends Model
+class AtkRequest extends Model
 {
-    protected $table = 'atk_requests'; // Tentukan tabel secara eksplisit
+    protected $table = 'atk_requests';
 
-    protected $fillable = ['user_id', 'status', 'notes'];
+    protected $fillable = ['user_id', 'notes', 'status'];
 
     public function user()
     {

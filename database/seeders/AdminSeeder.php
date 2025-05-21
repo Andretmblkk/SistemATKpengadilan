@@ -10,6 +10,8 @@ class AdminSeeder extends Seeder
 {
     public function run()
     {
+        // Pastikan role sudah dibuat sebelumnya
+        
         // Buat pengguna admin
         $admin = User::updateOrCreate(
             ['email' => 'admin@atkpta.test'],
