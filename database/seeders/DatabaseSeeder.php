@@ -20,7 +20,8 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RoleSeeder::class,    // Wajib dijalankan pertama
             AdminSeeder::class,
-            // Tambahkan seeders lainnya di sini
+            SupplierSeeder::class,
+            ItemSeeder::class,
         ]);
     }
 }

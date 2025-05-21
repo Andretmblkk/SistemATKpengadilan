@@ -1,5 +1,4 @@
 <?php
-
 return [
     /*
     |--------------------------------------------------------------------------
@@ -17,6 +16,37 @@ return [
     */
     'brand' => [
         'logo' => '/images/logo.png',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication
+    |--------------------------------------------------------------------------
+    */
+    'auth' => [
+        'guard' => 'web', // Guard autentikasi Laravel
+        'pages' => [
+            'login' => \Filament\Pages\Auth\Login::class, // Untuk Filament v3
+            // Jika menggunakan Filament v2, gunakan:
+            // 'login' => \Filament\Http\Livewire\Auth\Login::class,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Middleware
+    |--------------------------------------------------------------------------
+    */
+    'middleware' => [
+        'auth' => [
+            \Illuminate\Auth\Middleware\Authenticate::class,
+        ],
+        'base' => [
+            \Illuminate\Session\Middleware\StartSession::class,
+            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+            \Filament\Http\Middleware\DisableBladeIconCache::class,
+            \Filament\Http\Middleware\DispatchServingFilamentEvent::class,
+        ],
     ],
 
     /*
