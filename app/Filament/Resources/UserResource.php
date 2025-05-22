@@ -1,82 +1,66 @@
 <?php
-
 namespace App\Filament\Resources;
-
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Forms\Form;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Hash;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\BulkActionGroup;
-use Filament\Tables\Actions\DeleteBulkAction;
-
+use Spatie\Permission\Models\Role;
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
     protected static ?string $navigationIcon = 'heroicon-o-users';
-
+    protected static ?string $navigationLabel = 'Pengguna';
+    protected static ?string $pluralLabel = 'Pengguna';
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                TextInput::make('name')
+                Forms\Components\TextInput::make('name')
+                    ->label('Nama')
                     ->required()
-                    ->label('Nama'),
-                TextInput::make('email')
+                    ->maxLength(255),
+                Forms\Components\TextInput::make('email')
+                    ->label('Email')
                     ->email()
-                    ->required(),
-                TextInput::make('password')
-                    ->password()
-                    ->dehydrateStateUsing(fn ($state) => Hash::make($state))
-                    ->required(fn (string $context): bool => $context === 'create')
-                    ->label('Kata Sandi'),
-                Select::make('roles')
-                    ->multiple()
-                    ->relationship('roles', 'name')
-                    ->preload()
                     ->required()
-                    ->options([
-                        'super_admin' => 'Super Admin',
-                        'admin_gudang' => 'Admin Gudang',
-                        'staff' => 'Staff',
-                        'pimpinan' => 'Pimpinan'
-                    ])
-                    ->label('Peran'),
+                    ->maxLength(255),
+                Forms\Components\TextInput::make('password')
+                    ->label('Password')
+                    ->password()
+                    ->required()
+                    ->minLength(8)
+                    ->visibleOn('create'),
+                Forms\Components\Select::make('roles')
+                    ->label('Role')
+                    ->relationship('roles', 'name')
+                    ->multiple()
+                    ->options(Role::pluck('name', 'id')->toArray())
+                    ->required()
+                    ->preload(),
             ]);
     }
-
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                TextColumn::make('name')
-                    ->label('Nama')
-                    ->searchable(),
-                TextColumn::make('email')
-                    ->searchable(),
-                TextColumn::make('roles.name')
-                    ->label('Peran')
-                    ->badge(),
+                Tables\Columns\TextColumn::make('name')->label('Nama'),
+                Tables\Columns\TextColumn::make('email')->label('Email'),
+                Tables\Columns\TextColumn::make('roles.name')->label('Role'),
+            ])
+            ->filters([
+                //
             ])
             ->actions([
-                EditAction::make(),
-                DeleteAction::make(),
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                Tables\Actions\DeleteBulkAction::make(),
             ]);
     }
-
     public static function getPages(): array
     {
         return [
