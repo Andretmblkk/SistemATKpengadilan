@@ -5,53 +5,52 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ReportResource\Pages;
 use App\Models\Report;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Forms\Form;
 use Filament\Tables\Table;
 
 class ReportResource extends Resource
 {
     protected static ?string $model = Report::class;
+    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static ?string $navigationLabel = 'Laporan';
+    protected static ?string $pluralLabel = 'Laporan';
 
-    protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
-
-    protected static ?string $navigationLabel = 'Reports';
-
-    protected static ?string $navigationGroup = 'Reports';
-
-    // Batasi akses hanya untuk role 'admin' dan 'pimpinan'
-    public static function canAccess(): bool
+    public static function canViewAny(): bool
     {
-        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'pimpinan']);
-    }
-
-    // Batasi visibilitas di navigasi
-    public static function shouldRegisterNavigation(): bool
-    {
-        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'pimpinan']);
+        return auth()->user()->hasAnyRole(['admin', 'pimpinan']);
     }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('title')
-                    ->label('Report Title')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\Textarea::make('description')
-                    ->label('Description')
-                    ->columnSpanFull(),
-                Forms\Components\DatePicker::make('report_date')
-                    ->label('Report Date')
-                    ->required(),
                 Forms\Components\Select::make('user_id')
-                    ->label('Created By')
+                    ->label('Pengunggah')
                     ->relationship('user', 'name')
                     ->default(auth()->id())
                     ->disabled()
-                    ->required(),
+                    ->dehydrated(true),
+                Forms\Components\TextInput::make('title')
+                    ->label('Judul')
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\Textarea::make('description')
+                    ->label('Deskripsi')
+                    ->maxLength(65535),
+                Forms\Components\FileUpload::make('file_path')
+                    ->label('File Laporan (PDF)')
+                    ->acceptedFileTypes(['application/pdf'])
+                    ->directory('reports')
+                    ->maxSize(10240)
+                    ->enableDownload()
+                    ->enableOpen()
+                    ->helperText('Hanya file PDF yang diizinkan.'),
+                Forms\Components\DatePicker::make('report_date')
+                    ->label('Tanggal Laporan')
+                    ->required()
+                    ->default(now()),
             ]);
     }
 
@@ -59,26 +58,22 @@ class ReportResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('title')
-                    ->label('Report Title')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('report_date')
-                    ->label('Report Date')
-                    ->date()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('user.name')
-                    ->label('Created By')
-                    ->searchable(),
+                Tables\Columns\TextColumn::make('user.name')->label('Pengunggah'),
+                Tables\Columns\TextColumn::make('title')->label('Judul'),
+                Tables\Columns\TextColumn::make('description')->label('Deskripsi'),
+                Tables\Columns\TextColumn::make('report_date')->label('Tanggal Laporan')->date(),
+                Tables\Columns\TextColumn::make('file_path')
+                    ->label('File')
+                    ->formatStateUsing(fn ($state) => $state ? '<a href="' . \Illuminate\Support\Facades\Storage::url($state) . '" target="_blank">Lihat/Download PDF</a>' : '-')
+                    ->html(),
             ])
             ->filters([
                 //
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
             ]);
     }
 
@@ -88,6 +83,7 @@ class ReportResource extends Resource
             'index' => Pages\ListReports::route('/'),
             'create' => Pages\CreateReport::route('/create'),
             'edit' => Pages\EditReport::route('/{record}/edit'),
+            'view' => Pages\ViewReport::route('/{record}'),
         ];
     }
 }

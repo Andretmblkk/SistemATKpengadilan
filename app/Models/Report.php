@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Report extends Model
 {
-    protected $fillable = ['title', 'description', 'report_date', 'user_id'];
+    protected $fillable = ['user_id', 'title', 'description', 'file_path', 'report_date'];
 
     public function user()
     {
