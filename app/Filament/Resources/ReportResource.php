@@ -16,6 +16,7 @@ class ReportResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static ?string $navigationLabel = 'Laporan';
     protected static ?string $pluralLabel = 'Laporan';
+     protected static ?string $navigationGroup = 'laporan';
 
     public static function canViewAny(): bool
     {

@@ -25,38 +25,55 @@ class AdminPanelProvider extends PanelProvider
     public function panel(Panel $panel): Panel
     {
         return $panel
-            ->default()
-            ->id('admin')
-            ->path('admin')
-            ->login()
-            ->brandName('Sistem ATK PTA Jayapura')
-            ->authGuard('web')
+            // Kategori 1: Konfigurasi Dasar Panel Admin
+            ->default() // Menjadikan panel ini sebagai panel default
+            ->id('admin') // ID panel adalah 'admin'
+            ->path('admin') // URL akses panel di '/admin'
+            ->login() // Mengaktifkan halaman login
+            ->brandName('Sistem ATK PTA Jayapura') // Nama merek aplikasi
+            ->authGuard('web') // Menggunakan guard 'web' untuk autentikasi
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Amber, // Warna utama panel adalah Amber
             ])
-            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
-            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
+
+            // Kategori 2: Pengelolaan Sumber Daya (Resources)
+            ->discoverResources(
+                in: app_path('Filament/Resources'), 
+                for: 'App\\Filament\\Resources'
+            ) // Menemukan semua resource di direktori app/Filament/Resources
+
+            // Kategori 3: Pengelolaan Halaman (Pages)
+            ->discoverPages(
+                in: app_path('Filament/Pages'), 
+                for: 'App\\Filament\\Pages'
+            ) // Menemukan semua halaman di direktori app/Filament/Pages
             ->pages([
-                Pages\Dashboard::class,
+                Pages\Dashboard::class, // Menambahkan halaman dashboard
             ])
+
+            // Kategori 4: Widget untuk Dashboard
             ->widgets([
-                StatsOverview::class,
-                RequestsChart::class,
-                Widgets\AccountWidget::class,
+                StatsOverview::class, // Widget untuk ringkasan statistik
+                RequestsChart::class, // Widget untuk grafik permintaan
+                Widgets\AccountWidget::class, // Widget untuk informasi akun
             ])
+
+            // Kategori 5: Middleware untuk Keamanan dan Fungsionalitas
             ->middleware([
-                EncryptCookies::class,
-                AddQueuedCookiesToResponse::class,
-                StartSession::class,
-                AuthenticateSession::class,
-                ShareErrorsFromSession::class,
-                VerifyCsrfToken::class,
-                SubstituteBindings::class,
-                DisableBladeIconComponents::class,
-                DispatchServingFilamentEvent::class,
+                EncryptCookies::class, // Mengenkripsi cookie
+                AddQueuedCookiesToResponse::class, // Menambahkan cookie ke respons
+                StartSession::class, // Memulai sesi pengguna
+                AuthenticateSession::class, // Memastikan sesi pengguna valid
+                ShareErrorsFromSession::class, // Membagikan error ke view
+                VerifyCsrfToken::class, // Verifikasi token CSRF
+                SubstituteBindings::class, // Mengganti binding route
+                DisableBladeIconComponents::class, // Nonaktifkan ikon Blade
+                DispatchServingFilamentEvent::class, // Kirim event Filament
             ])
+
+            // Kategori 6: Middleware Autentikasi
             ->authMiddleware([
-                Authenticate::class,
+                Authenticate::class, // Memastikan pengguna login
             ]);
     }
 }
