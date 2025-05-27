@@ -12,6 +12,8 @@ use Filament\Tables\Table;
 use Filament\Tables\Actions\Action;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class RequestResource extends Resource
 {
@@ -77,24 +79,51 @@ class RequestResource extends Resource
                 Action::make('approve')
                     ->label('Setujui')
                     ->action(function ($record) {
-                        // Ambil item terkait
-                        $item = Item::find($record->item_id);
-                        // Periksa apakah stok cukup
-                        if ($item && $item->stock >= $record->quantity) {
-                            // Kurangi stok
-                            $item->decrement('stock', $record->quantity);
-                            // Perbarui status permintaan
-                            $record->update(['status' => 'approved']);
-                            // Notifikasi sukses
+                        try {
+                            // Mulai transaksi database
+                            DB::beginTransaction();
+
+                            // Ambil item terkait
+                            $item = Item::find($record->item_id);
+                            if (!$item) {
+                                Log::error('Item tidak ditemukan untuk request ID: ' . $record->id . ', item_id: ' . $record->item_id);
+                                Notification::make()
+                                    ->title('Gagal')
+                                    ->body('Item tidak ditemukan.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            // Periksa apakah stok cukup
+                            if ($item->stock >= $record->quantity) {
+                                // Kurangi stok
+                                $item->decrement('stock', $record->quantity);
+                                // Perbarui status permintaan
+                                $record->update(['status' => 'approved']);
+                                // Commit transaksi
+                                DB::commit();
+                                Log::info('Permintaan disetujui, stok dikurangi. Request ID: ' . $record->id . ', Item ID: ' . $item->id . ', Jumlah: ' . $record->quantity . ', Stok tersisa: ' . $item->stock);
+                                Notification::make()
+                                    ->title('Permintaan disetujui')
+                                    ->body('Stok item ' . $item->name . ' telah dikurangi sebanyak ' . $record->quantity . '.')
+                                    ->success()
+                                    ->send();
+                            } else {
+                                Log::warning('Stok tidak cukup untuk request ID: ' . $record->id . ', Item ID: ' . $item->id . ', Stok tersedia: ' . $item->stock . ', Diminta: ' . $record->quantity);
+                                Notification::make()
+                                    ->title('Stok tidak cukup')
+                                    ->body('Stok item ' . $item->name . ' hanya ' . $item->stock . ' unit.')
+                                    ->danger()
+                                    ->send();
+                                DB::rollBack();
+                            }
+                        } catch (\Exception $e) {
+                            DB::rollBack();
+                            Log::error('Error saat menyetujui permintaan ID: ' . $record->id . ', Pesan: ' . $e->getMessage());
                             Notification::make()
-                                ->title('Permintaan disetujui')
-                                ->success()
-                                ->send();
-                        } else {
-                            // Notifikasi jika stok tidak cukup
-                            Notification::make()
-                                ->title('Stok tidak cukup')
-                                ->body('Stok item ' . ($item ? $item->name : 'tidak ditemukan') . ' tidak mencukupi.')
+                                ->title('Gagal')
+                                ->body('Terjadi kesalahan: ' . $e->getMessage())
                                 ->danger()
                                 ->send();
                         }
@@ -111,11 +140,21 @@ class RequestResource extends Resource
                 Action::make('reject')
                     ->label('Tolak')
                     ->action(function ($record) {
-                        $record->update(['status' => 'rejected']);
-                        Notification::make()
-                            ->title('Permintaan ditolak')
-                            ->success()
-                            ->send();
+                        try {
+                            $record->update(['status' => 'rejected']);
+                            Log::info('Permintaan ditolak. Request ID: ' . $record->id);
+                            Notification::make()
+                                ->title('Permintaan ditolak')
+                                ->success()
+                                ->send();
+                        } catch (\Exception $e) {
+                            Log::error('Error saat menolak permintaan ID: ' . $record->id . ', Pesan: ' . $e->getMessage());
+                            Notification::make()
+                                ->title('Gagal')
+                                ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
                     })
                     ->requiresConfirmation()
                     ->visible(function ($record) {
