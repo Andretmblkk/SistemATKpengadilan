@@ -8,6 +8,7 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class ItemResource extends Resource
@@ -40,10 +41,7 @@ class ItemResource extends Resource
                     ->maxLength(255)
                     ->unique(ignoreRecord: true)
                     ->rules(['required', 'string', 'max:255'])
-                    ->dehydrated(true)
-                    ->afterStateUpdated(function ($state, $context) {
-                        \Log::info("Item name input ($context): " . $state);
-                    }),
+                    ->dehydrated(true),
                 Forms\Components\Textarea::make('description')
                     ->label('Description')
                     ->columnSpanFull()
@@ -71,7 +69,19 @@ class ItemResource extends Resource
                     ->nullable()
                     ->rules(['nullable', 'exists:suppliers,id'])
                     ->dehydrated(true),
-            ])->statePath('data')->reactive();
+                Forms\Components\Select::make('category')
+                    ->label('Category')
+                    ->options([
+                        'alat_tulis' => 'Alat Tulis',
+                        'perlengkapan_kantor' => 'Perlengkapan Kantor',
+                        'dokumen' => 'Dokumen',
+                    ])
+                    ->required()
+                    ->rules(['required', 'in:alat_tulis,perlengkapan_kantor,dokumen'])
+                    ->dehydrated(true),
+            ])
+            ->statePath('data')
+            ->reactive();
     }
 
     public static function table(Table $table): Table
@@ -92,12 +102,28 @@ class ItemResource extends Resource
                     ->label('Supplier')
                     ->default('No Supplier')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('category')
+                    ->label('Category')
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'alat_tulis' => 'Alat Tulis',
+                        'perlengkapan_kantor' => 'Perlengkapan Kantor',
+                        'dokumen' => 'Dokumen',
+                        default => 'No Category',
+                    })
+                    ->searchable()
+                    ->sortable(),
             ])
-            ->query(function () {
-                return Item::with('supplier');
-            })
+            ->query(fn () => Item::query()->with('supplier')->latest())
             ->filters([
-                //
+                SelectFilter::make('category')
+                    ->label('Category')
+                    ->options([
+                        'alat_tulis' => 'Alat Tulis',
+                        'perlengkapan_kantor' => 'Perlengkapan Kantor',
+                        'dokumen' => 'Dokumen',
+                    ])
+                    ->multiple()
+                    ->preload(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -105,7 +131,8 @@ class ItemResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
-            ]);
+            ])
+            ->defaultPaginationPageOption(10);
     }
 
     public static function getPages(): array
