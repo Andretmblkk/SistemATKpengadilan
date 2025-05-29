@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\RequestResource\Pages;
@@ -11,6 +12,7 @@ use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Tables\Actions\Action;
 use Filament\Notifications\Notification;
+use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -48,6 +50,7 @@ class RequestResource extends Resource
                     ->numeric()
                     ->minValue(1),
                 Forms\Components\Select::make('status')
+                    ->label('Status')
                     ->options([
                         'pending' => 'Pending',
                         'approved' => 'Approved',
@@ -56,6 +59,19 @@ class RequestResource extends Resource
                     ->default('pending')
                     ->required()
                     ->disabled(fn () => !auth()->user()->hasAnyRole(['admin', 'pimpinan'])),
+                Forms\Components\Select::make('delivery_status')
+                    ->label('Status Pengambilan')
+                    ->options([
+                        'not_delivered' => 'Belum Diambil',
+                        'delivered' => 'Sudah Diambil',
+                    ])
+                    ->default('not_delivered')
+                    ->required()
+                    // Hanya muncul saat edit dan status adalah 'approved'
+                    ->visible(fn ($get, $operation, $record) => $operation === 'edit' && $get('status') === 'approved')
+                    ->disabled(fn ($get) => $get('status') !== 'approved')
+                    ->helperText('Hanya dapat diubah jika status permintaan adalah Approved.')
+                    ->dehydrated(true),
             ]);
     }
 
@@ -66,13 +82,50 @@ class RequestResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Staff')
-                    ->visible(fn () => auth()->user()->hasRole('admin')),
-                Tables\Columns\TextColumn::make('item.name')->label('Item'),
-                Tables\Columns\TextColumn::make('quantity')->label('Jumlah'),
-                Tables\Columns\TextColumn::make('status')->label('Status'),
+                    ->visible(fn () => auth()->user()->hasRole('admin'))
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('item.name')
+                    ->label('Item')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('quantity')
+                    ->label('Jumlah')
+                    ->numeric(),
+                Tables\Columns\TextColumn::make('status')
+                    ->label('Status')
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'pending' => 'Pending',
+                        'approved' => 'Approved',
+                        'rejected' => 'Rejected',
+                        default => 'Tidak Diketahui',
+                    })
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('delivery_status')
+                    ->label('Status Pengambilan')
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'not_delivered' => 'Belum Diambil',
+                        'delivered' => 'Sudah Diambil',
+                        default => 'Tidak Diketahui',
+                    })
+                    ->sortable(),
             ])
             ->filters([
-                // Tambahkan filter jika diperlukan
+                SelectFilter::make('status')
+                    ->label('Status')
+                    ->options([
+                        'pending' => 'Pending',
+                        'approved' => 'Approved',
+                        'rejected' => 'Rejected',
+                    ])
+                    ->multiple()
+                    ->preload(),
+                SelectFilter::make('delivery_status')
+                    ->label('Status Pengambilan')
+                    ->options([
+                        'not_delivered' => 'Belum Diambil',
+                        'delivered' => 'Sudah Diambil',
+                    ])
+                    ->multiple()
+                    ->preload(),
             ])
             ->actions([
                 // Aksi Approve
@@ -80,10 +133,7 @@ class RequestResource extends Resource
                     ->label('Setujui')
                     ->action(function ($record) {
                         try {
-                            // Mulai transaksi database
                             DB::beginTransaction();
-
-                            // Ambil item terkait
                             $item = Item::find($record->item_id);
                             if (!$item) {
                                 Log::error('Item tidak ditemukan untuk request ID: ' . $record->id . ', item_id: ' . $record->item_id);
@@ -94,14 +144,9 @@ class RequestResource extends Resource
                                     ->send();
                                 return;
                             }
-
-                            // Periksa apakah stok cukup
                             if ($item->stock >= $record->quantity) {
-                                // Kurangi stok
                                 $item->decrement('stock', $record->quantity);
-                                // Perbarui status permintaan
                                 $record->update(['status' => 'approved']);
-                                // Commit transaksi
                                 DB::commit();
                                 Log::info('Permintaan disetujui, stok dikurangi. Request ID: ' . $record->id . ', Item ID: ' . $item->id . ', Jumlah: ' . $record->quantity . ', Stok tersisa: ' . $item->stock);
                                 Notification::make()
@@ -129,12 +174,8 @@ class RequestResource extends Resource
                         }
                     })
                     ->requiresConfirmation()
-                    ->visible(function ($record) {
-                        return $record->status === 'pending';
-                    })
-                    ->authorize(function () {
-                        return auth()->user()->hasAnyRole(['admin', 'pimpinan']);
-                    })
+                    ->visible(fn ($record) => $record->status === 'pending')
+                    ->authorize(fn () => auth()->user()->hasAnyRole(['admin', 'pimpinan']))
                     ->color('success'),
                 // Aksi Reject
                 Action::make('reject')
@@ -157,19 +198,49 @@ class RequestResource extends Resource
                         }
                     })
                     ->requiresConfirmation()
-                    ->visible(function ($record) {
-                        return $record->status === 'pending';
-                    })
-                    ->authorize(function () {
-                        return auth()->user()->hasAnyRole(['admin', 'pimpinan']);
-                    })
+                    ->visible(fn ($record) => $record->status === 'pending')
+                    ->authorize(fn () => auth()->user()->hasAnyRole(['admin', 'pimpinan']))
                     ->color('danger'),
+                // Aksi Mark as Delivered
+                Action::make('mark_delivered')
+                    ->label('Tandai Diambil')
+                    ->action(function ($record) {
+                        try {
+                            if ($record->status !== 'approved') {
+                                Notification::make()
+                                    ->title('Gagal')
+                                    ->body('Permintaan harus disetujui sebelum ditandai sebagai diambil.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+                            $record->update(['delivery_status' => 'delivered']);
+                            Log::info('Permintaan ditandai sebagai diambil. Request ID: ' . $record->id);
+                            Notification::make()
+                                ->title('Berhasil')
+                                ->body('Permintaan telah ditandai sebagai diambil.')
+                                ->success()
+                                ->send();
+                        } catch (\Exception $e) {
+                            Log::error('Error saat menandai permintaan sebagai diambil ID: ' . $record->id . ', Pesan: ' . $e->getMessage());
+                            Notification::make()
+                                ->title('Gagal')
+                                ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    })
+                    ->requiresConfirmation()
+                    ->visible(fn ($record) => $record->status === 'approved' && $record->delivery_status === 'not_delivered')
+                    ->authorize(fn () => auth()->user()->hasAnyRole(['admin', 'staff']))
+                    ->color('info'),
                 Tables\Actions\EditAction::make()->visible(fn () => auth()->user()->hasRole('admin')),
                 Tables\Actions\ViewAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make()->visible(fn () => auth()->user()->hasRole('admin')),
-            ]);
+            ])
+            ->defaultPaginationPageOption(10);
     }
 
     // Kategori 4: Pengelolaan Halaman

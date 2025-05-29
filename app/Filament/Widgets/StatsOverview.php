@@ -2,23 +2,27 @@
 
 namespace App\Filament\Widgets;
 
-use Filament\Widgets\StatsOverviewWidget;
-use App\Models\AtkRequest; // Ganti dari Request ke AtkRequest
+use App\Models\Request;
+use Filament\Widgets\StatsOverviewWidget as BaseWidget;
+use Filament\Widgets\StatsOverviewWidget\Stat;
 
-class StatsOverview extends StatsOverviewWidget
+class StatsOverview extends BaseWidget
 {
     protected function getStats(): array
     {
         return [
-            StatsOverviewWidget\Stat::make('Total Requests', AtkRequest::count())
-                ->description('Number of ATK requests submitted')
-                ->descriptionIcon('heroicon-o-clipboard-document'),
-            StatsOverviewWidget\Stat::make('Pending Requests', AtkRequest::where('status', 'pending')->count())
-                ->description('Requests awaiting approval')
-                ->descriptionIcon('heroicon-o-clock'),
-            StatsOverviewWidget\Stat::make('Approved Requests', AtkRequest::where('status', 'approved')->count())
-                ->description('Requests approved')
-                ->descriptionIcon('heroicon-o-check-circle'),
+            Stat::make('Total Requests', Request::count())
+                ->description('Jumlah permintaan ATK yang diajukan')
+                ->color('primary'),
+            Stat::make('Pending Requests', Request::where('status', 'pending')->count())
+                ->description('Permintaan menunggu persetujuan')
+                ->color('warning'),
+            Stat::make('Approved Requests', Request::where('status', 'approved')->count())
+                ->description('Permintaan yang disetujui')
+                ->color('success'),
+            Stat::make('Delivered Requests', Request::where('delivery_status', 'delivered')->count())
+                ->description('Permintaan yang telah diambil')
+                ->color('info'),
         ];
     }
 }
