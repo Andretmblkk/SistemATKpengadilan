@@ -23,9 +23,37 @@ class ReportResource extends Resource
     protected static ?string $pluralLabel = 'Laporan';
     protected static ?string $navigationGroup = 'Laporan';
 
-    public static function canViewAny(): bool
+    public static function canAccess(): bool
     {
-        return auth()->user()->hasAnyRole(['admin', 'pimpinan']);
+        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'pimpinan', 'staff']);
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'staff']);
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->check() && (
+            auth()->user()->hasRole('admin') || 
+            (auth()->user()->hasRole('staff') && $record->user_id === auth()->id())
+        );
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
+    }
+
+    public static function canView($record): bool
+    {
+        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'pimpinan', 'staff']);
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'pimpinan', 'staff']);
     }
 
     public static function form(Form $form): Form
@@ -33,8 +61,7 @@ class ReportResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('user_id')
-                    ->label('Pengunggah')
-                    ->relationship('user', 'name')
+                    ->label('Pelapor')
                     ->default(auth()->id())
                     ->disabled()
                     ->dehydrated(true),
@@ -93,19 +120,8 @@ class ReportResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('user_id')
-                    ->label('Pengunggah')
-                    ->relationship('user', 'name')
-                    ->visible(fn () => auth()->user()->hasRole('admin'))
-                    ->multiple()
-                    ->preload()
-                    ->searchable()
-                    ->query(function (Builder $query, array $data): Builder {
-                        if (!empty($data['values'])) {
-                            Log::info('Filtering by user_id', ['values' => $data['values']]);
-                            return $query->whereIn('user_id', $data['values']);
-                        }
-                        return $query;
-                    }),
+                    ->label('Pelapor')
+                    ->default(auth()->id()),
                 Filter::make('title')
                     ->form([
                         Forms\Components\TextInput::make('title_search')

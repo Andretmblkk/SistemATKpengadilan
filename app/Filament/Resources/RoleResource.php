@@ -17,27 +17,40 @@ class RoleResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-shield-check';
 
-    protected static ?string $navigationLabel = 'Roles';
+    protected static ?string $navigationLabel = 'Peran';
 
-    protected static ?string $navigationGroup = 'User Management';
+    protected static ?string $navigationGroup = 'Manajemen Pengguna';
 
-    // Batasi akses hanya untuk role 'admin' dengan debug sementara
+    // Batasi akses hanya untuk role 'admin'
     public static function canAccess(): bool
     {
-        $user = auth()->user();
-        if (!$user) {
-            \Log::debug('No authenticated user found in RoleResource.');
-            return false;
-        }
-        $hasAccess = $user->hasRole('admin');
-        \Log::debug('User ' . $user->email . ' hasRole(admin): ' . ($hasAccess ? 'true' : 'false'));
-        return $hasAccess;
+        return auth()->check() && auth()->user()->hasRole('admin');
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
+    }
+
+    public static function canView($record): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
     }
 
     // Pembatasan manual untuk navigasi
     public static function shouldRegisterNavigation(): bool
     {
-        return auth()->check() && auth()->user()->hasRole('admin');
+        return false; // Sembunyikan untuk semua role
     }
 
     public static function form(Form $form): Form
@@ -52,7 +65,6 @@ class RoleResource extends Resource
                     ->label('Permissions')
                     ->multiple()
                     ->options(Permission::all()->pluck('name', 'id'))
-                    ->relationship('permissions', 'name')
                     ->preload(),
             ]);
     }
@@ -72,11 +84,14 @@ class RoleResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn () => auth()->user()->hasRole('admin')),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn () => auth()->user()->hasRole('admin')),
             ])
             ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+                Tables\Actions\DeleteBulkAction::make()
+                    ->visible(fn () => auth()->user()->hasRole('admin')),
             ]);
     }
 

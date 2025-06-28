@@ -6,40 +6,58 @@ use Illuminate\Database\Seeder;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
-class AdminSeeder extends Seeder
+class Adminseeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
-        // Pastikan role sudah dibuat sebelumnya
-        
-        // Buat pengguna admin
-        $admin = User::updateOrCreate(
-            ['email' => 'admin@atkpta.test'],
+        // Daftar pengguna berdasarkan staf Pengadilan Agama
+        $users = [
             [
-                'name' => 'Admin User',
+                'name' => 'Fatma Ainur Rosyidah',
+                'email' => 'fatma@pengadilan-agama.go.id',
                 'password' => Hash::make('password'),
-            ]
-        );
-        $admin->assignRole('admin');
+                'role' => 'admin',
+            ],
+            [
+                'name' => 'Darodji',
+                'email' => 'darodji@pengadilan-agama.go.id',
+                'password' => Hash::make('password'),
+                'role' => 'pimpinan',
+            ],
+            [
+                'name' => 'Hj. Surmiani',
+                'email' => 'surmiani@pengadilan-agama.go.id',
+                'password' => Hash::make('password'),
+                'role' => 'staff',
+            ],
+            [
+                'name' => 'Mohammad Zulkifi Lubis',
+                'email' => 'zulkifi@pengadilan-agama.go.id',
+                'password' => Hash::make('password'),
+                'role' => 'staff',
+            ],
+            [
+                'name' => 'Panuju Hidayat',
+                'email' => 'panuju@pengadilan-agama.go.id',
+                'password' => Hash::make('password'),
+                'role' => 'staff',
+            ],
+            [
+                'name' => 'Haeruddin',
+                'email' => 'haeruddin@pengadilan-agama.go.id',
+                'password' => Hash::make('password'),
+                'role' => 'staff',
+            ],
+        ];
 
-        // Buat pengguna staff
-        $staff = User::updateOrCreate(
-            ['email' => 'staff@atkpta.test'],
-            [
-                'name' => 'Staff User',
-                'password' => Hash::make('password'),
-            ]
-        );
-        $staff->assignRole('staff');
-
-        // Buat pengguna pimpinan
-        $pimpinan = User::updateOrCreate(
-            ['email' => 'pimpinan@atkpta.test'],
-            [
-                'name' => 'Pimpinan User',
-                'password' => Hash::make('password'),
-            ]
-        );
-        $pimpinan->assignRole('pimpinan');
+        // Buat pengguna dan assign role
+        foreach ($users as $userData) {
+            $user = User::create([
+                'name' => $userData['name'],
+                'email' => $userData['email'],
+                'password' => $userData['password'],
+            ]);
+            $user->assignRole($userData['role']);
+        }
     }
 }

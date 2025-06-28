@@ -3,7 +3,7 @@ namespace App\Filament\Widgets;
 
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use App\Models\Request;
+use App\Models\ItemRequest;
 use App\Models\Item;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;

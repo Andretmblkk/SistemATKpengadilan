@@ -17,12 +17,13 @@ use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteBulkAction;
+use App\Models\Role;
 
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
     protected static ?string $navigationIcon = 'heroicon-o-users';
-    protected static ?string $navigationGroup = 'User Management';
+    protected static ?string $navigationGroup = 'Manajemen Pengguna';
 
     public static function form(Form $form): Form
     {
@@ -40,17 +41,10 @@ class UserResource extends Resource
                     ->required(fn (string $context): bool => $context === 'create')
                     ->label('Kata Sandi'),
                 Select::make('roles')
+                    ->label('Peran')
                     ->multiple()
-                    ->relationship('roles', 'name')
-                    ->preload()
-                    ->required()
-                    ->options([
-                        'super_admin' => 'Super Admin',
-                        'admin_gudang' => 'Admin Gudang',
-                        'staff' => 'Staff',
-                        'pimpinan' => 'Pimpinan'
-                    ])
-                    ->label('Peran'),
+                    ->options(Role::all()->pluck('name', 'id'))
+                    ->preload(),
             ]);
     }
 
@@ -68,12 +62,15 @@ class UserResource extends Resource
                     ->badge(),
             ])
             ->actions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                    ->visible(fn () => auth()->user()->hasRole('admin')),
+                DeleteAction::make()
+                    ->visible(fn () => auth()->user()->hasRole('admin')),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()->hasRole('admin')),
                 ]),
             ]);
     }
@@ -85,5 +82,35 @@ class UserResource extends Resource
             'create' => Pages\CreateUser::route('/create'),
             'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
+    }
+
+    public static function canAccess(): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
+    }
+
+    public static function canView($record): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
     }
 }

@@ -1,0 +1,18 @@
+/* Hijaukan panel utama, card, dan sidebar Filament */
+.filament-main {
+    background-color: #e8fbe8 !important; /* hijau muda */
+}
+
+.filament-card, .fi-section, .fi-ta-card, .fi-wi-card {
+    background-color: #f0fdf4 !important; /* hijau sangat muda */
+    border-color: #22c55e !important;
+}
+
+.filament-main .fi-header {
+    color: #15803d !important; /* hijau tua */
+}
+
+.filament-sidebar {
+    background-color: #22c55e !important;
+    color: #fff !important;
+}

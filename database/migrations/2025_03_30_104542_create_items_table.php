@@ -13,17 +13,9 @@ return new class extends Migration
             $table->string('name')->unique();
             $table->text('description')->nullable();
             $table->integer('stock')->default(0);
+            $table->unsignedInteger('reorder_point')->default(0); // Batas stok minimal
             $table->decimal('price', 10, 2)->nullable();
-            $table->unsignedBigInteger('supplier_id')->nullable(); // Tanpa kunci asing dulu
             $table->timestamps();
-        });
-
-        // Tambahkan kunci asing setelah tabel dibuat
-        Schema::table('items', function (Blueprint $table) {
-            $table->foreign('supplier_id')
-                  ->references('id')
-                  ->on('suppliers')
-                  ->onDelete('set null');
         });
     }
 

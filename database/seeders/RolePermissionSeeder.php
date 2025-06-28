@@ -26,7 +26,6 @@ class RolePermissionSeeder extends Seeder
 
         // Buat permission
         $permissions = [
-            'manage-suppliers',
             'manage-items',
             'manage-requests',
             'view-reports',
@@ -45,7 +44,7 @@ class RolePermissionSeeder extends Seeder
 
         // Tetapkan permission ke role
         $adminRole->givePermissionTo(Permission::all());
-        $staffRole->givePermissionTo(['manage-suppliers', 'manage-items', 'manage-requests']);
+        $staffRole->givePermissionTo(['manage-items', 'manage-requests']);
         $pimpinanRole->givePermissionTo(['view-reports', 'approve-requests']);
     }
 }

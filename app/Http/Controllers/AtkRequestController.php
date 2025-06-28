@@ -32,6 +32,34 @@ class AtkRequestController extends Controller
                 })->toArray();
                 $atkRequest->items()->sync($syncData);
                 Log::info('Synced items for AtkRequest: ' . json_encode($syncData));
+
+                // Pengurangan stok dan trigger otomatisasi pengajuan pembelian
+                foreach ($data['data']['items'] as $itemData) {
+                    $item = \App\Models\Item::find($itemData['item_id']);
+                    if ($item) {
+                        $item->stock = max(0, $item->stock - $itemData['quantity']);
+                        $item->save();
+                        \Log::info('Stok barang dikurangi', ['item_id' => $item->id, 'stok_akhir' => $item->stock, 'batas_minimal' => $item->reorder_point]);
+                        // Cek reorder point dan buat draft pengajuan jika perlu
+                        if ($item->stock <= $item->reorder_point) {
+                            $existing = \App\Models\PurchaseRequest::where('item_id', $item->id)
+                                ->whereIn('status', ['draft', 'waiting_approval'])
+                                ->first();
+                            if (!$existing) {
+                                \App\Models\PurchaseRequest::create([
+                                    'item_id' => $item->id,
+                                    'current_stock' => $item->stock,
+                                    'reorder_point' => $item->reorder_point,
+                                    'status' => 'draft',
+                                    'created_by' => auth()->id(),
+                                ]);
+                                \Log::info('Pengajuan pembelian otomatis dibuat', ['item_id' => $item->id, 'stok' => $item->stock]);
+                            } else {
+                                \Log::info('Pengajuan pembelian sudah ada, tidak dibuat ulang', ['item_id' => $item->id]);
+                            }
+                        }
+                    }
+                }
             }
 
             return $atkRequest;

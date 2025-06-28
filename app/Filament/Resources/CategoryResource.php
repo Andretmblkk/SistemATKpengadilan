@@ -14,15 +14,47 @@ use App\Filament\Resources\CategoryResource\Pages;
 class CategoryResource extends Resource
 {
     protected static ?string $model = Category::class;
+    protected static ?string $navigationIcon = 'heroicon-o-tag';
+    protected static ?string $navigationLabel = 'Kategori';
+    protected static ?string $navigationGroup = 'Inventaris';
+
+    // Batasan akses - hanya admin
+    public static function canAccess(): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
+    }
+
+    // Pembatasan manual untuk navigasi
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false; // Sembunyikan untuk semua role
+    }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 TextInput::make('name')
+                    ->label('Nama Kategori')
                     ->required()
                     ->maxLength(255),
                 TextInput::make('description')
+                    ->label('Deskripsi')
                     ->maxLength(255),
             ]);
     }
@@ -32,9 +64,11 @@ class CategoryResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')
+                    ->label('Nama Kategori')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('description')
+                    ->label('Deskripsi')
                     ->searchable()
                     ->sortable(),
             ])
@@ -42,15 +76,20 @@ class CategoryResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn () => auth()->user()->hasRole('admin')),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn () => auth()->user()->hasRole('admin')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()->hasRole('admin')),
                 ]),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
+                Tables\Actions\CreateAction::make()
+                    ->visible(fn () => auth()->user()->hasRole('admin')),
             ]);
     }
     

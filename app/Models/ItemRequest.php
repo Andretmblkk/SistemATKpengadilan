@@ -6,8 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Log;
 
-class Request extends Model
+class ItemRequest extends Model
 {
+    protected $table = 'requests';
+    
     protected $fillable = ['user_id', 'item_id', 'quantity', 'status', 'delivery_status'];
 
     protected $attributes = [
@@ -30,7 +32,7 @@ class Request extends Model
         if (!isset($attributes['user_id']) && auth()->check()) {
             $attributes['user_id'] = auth()->id();
         }
-        Log::info('Attempt to create Request: ', $attributes);
+        Log::info('Attempt to create ItemRequest: ', $attributes);
         return parent::create($attributes);
     }
 }

@@ -64,3 +64,72 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+# Sistem ATK Pengadilan
+
+Sistem manajemen ATK (Alat Tulis Kantor) untuk pengadilan dengan fitur laporan barang rusak yang telah diperbarui.
+
+## Fitur Laporan Barang Rusak
+
+Sistem laporan barang rusak telah diperbarui dengan perubahan berikut:
+
+### Perubahan Struktur
+- **Sebelum**: Menggunakan `item_id` yang terhubung ke tabel items
+- **Sekarang**: Menggunakan `item_name` (text), `action_type` (enum: perbaiki/ganti), dan `status` (enum: pending/proses/selesai/ditolak)
+
+### Form Laporan Barang Rusak
+1. **Pelapor**: Otomatis terisi dengan user yang sedang login
+2. **Nama Barang**: Input text untuk memasukkan nama barang yang rusak
+3. **Jumlah Rusak**: Jumlah barang yang rusak
+4. **Deskripsi Kerusakan**: Penjelasan detail tentang kondisi kerusakan
+5. **Tindakan yang Diinginkan**: Pilihan antara "Perbaiki" atau "Ganti dengan Baru"
+6. **Status** (Admin only): Status laporan dengan pilihan:
+   - **Menunggu** (Kuning): Laporan baru yang belum diproses
+   - **Sedang Diproses** (Biru): Laporan sedang dalam penanganan
+   - **Selesai** (Hijau): Laporan telah selesai ditangani
+   - **Ditolak** (Merah): Laporan ditolak/dibatalkan
+7. **Tanggal Laporan**: Otomatis terisi dengan tanggal hari ini
+
+### Status Laporan
+Sistem memiliki 4 status untuk melacak progress laporan:
+
+- **Menunggu** (`pending`): Laporan baru yang belum diproses
+- **Sedang Diproses** (`proses`): Laporan sedang dalam penanganan
+- **Selesai** (`selesai`): Laporan telah selesai ditangani
+- **Ditolak** (`ditolak`): Laporan ditolak/dibatalkan
+
+### Fitur Admin
+Admin dapat:
+- Mengubah status laporan melalui form edit
+- Menggunakan quick actions untuk mengubah status dengan cepat:
+  - Set Menunggu (ikon jam)
+  - Set Diproses (ikon gear)
+  - Set Selesai (ikon check)
+  - Set Ditolak (ikon x)
+- Melihat semua laporan dari semua user
+- Filter laporan berdasarkan status, tindakan, dan tanggal
+
+### Fitur Staff
+Staff dapat:
+- Membuat laporan barang rusak baru
+- Melihat laporan yang mereka buat
+- Melihat status laporan mereka
+
+### Keuntungan Perubahan
+- Lebih fleksibel untuk melaporkan barang yang tidak ada di database
+- Bisa melaporkan barang yang rusak tanpa perlu menambahkannya ke inventory terlebih dahulu
+- Memudahkan pelaporan barang yang rusak dengan cepat
+- Memberikan pilihan tindakan yang jelas (perbaiki atau ganti)
+- **Tracking progress**: Admin dapat melacak status setiap laporan
+- **Quick actions**: Admin dapat mengubah status dengan cepat tanpa membuka form edit
+
+### Cara Penggunaan
+1. Login ke sistem dengan role staff atau admin
+2. Akses menu "Laporan Barang Rusak"
+3. Klik "Create" untuk membuat laporan baru
+4. Isi form dengan informasi barang yang rusak
+5. Pilih tindakan yang diinginkan (perbaiki atau ganti)
+6. Submit laporan
+7. **Untuk Admin**: Gunakan quick actions untuk mengubah status laporan
+
+## Instalasi dan Setup

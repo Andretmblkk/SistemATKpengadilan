@@ -1,0 +1,1 @@
+@livewire('request-detail-modal', ['requestId' => $requestId]) 

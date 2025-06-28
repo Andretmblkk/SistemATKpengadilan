@@ -2,7 +2,7 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Request;
+use App\Models\ItemRequest;
 use Filament\Widgets\ChartWidget;
 
 class RequestsChart extends ChartWidget
@@ -11,12 +11,12 @@ class RequestsChart extends ChartWidget
 
     protected function getData(): array
     {
-        $statusData = Request::selectRaw('status, COUNT(*) as count')
+        $statusData = ItemRequest::selectRaw('status, COUNT(*) as count')
             ->groupBy('status')
             ->pluck('count', 'status')
             ->toArray();
 
-        $deliveryData = Request::selectRaw('delivery_status, COUNT(*) as count')
+        $deliveryData = ItemRequest::selectRaw('delivery_status, COUNT(*) as count')
             ->groupBy('delivery_status')
             ->pluck('count', 'delivery_status')
             ->toArray();

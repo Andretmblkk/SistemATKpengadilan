@@ -17,18 +17,38 @@ class ItemResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-archive-box';
 
-    protected static ?string $navigationLabel = 'Items';
+    protected static ?string $navigationLabel = 'Barang';
 
-    protected static ?string $navigationGroup = 'Inventory';
+    protected static ?string $navigationGroup = 'Inventaris';
 
     public static function canAccess(): bool
     {
-        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'staff']);
+        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'staff', 'pimpinan']);
     }
 
     public static function shouldRegisterNavigation(): bool
     {
-        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'staff']);
+        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'staff', 'pimpinan']);
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
+    }
+
+    public static function canView($record): bool
+    {
+        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'staff', 'pimpinan']);
     }
 
     public static function form(Form $form): Form
@@ -36,41 +56,40 @@ class ItemResource extends Resource
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
-                    ->label('Item Name')
+                    ->label('Nama Barang')
                     ->required()
                     ->maxLength(255)
                     ->unique(ignoreRecord: true)
                     ->rules(['required', 'string', 'max:255'])
                     ->dehydrated(true),
                 Forms\Components\Textarea::make('description')
-                    ->label('Description')
+                    ->label('Deskripsi')
                     ->columnSpanFull()
                     ->rules(['nullable', 'string'])
                     ->dehydrated(true),
                 Forms\Components\TextInput::make('stock')
-                    ->label('Stock')
+                    ->label('Stok')
+                    ->numeric()
+                    ->default(0)
+                    ->required()
+                    ->rules(['required', 'integer', 'min:0'])
+                    ->dehydrated(true),
+                Forms\Components\TextInput::make('reorder_point')
+                    ->label('Batas Stok Minimal')
                     ->numeric()
                     ->default(0)
                     ->required()
                     ->rules(['required', 'integer', 'min:0'])
                     ->dehydrated(true),
                 Forms\Components\TextInput::make('price')
-                    ->label('Price')
+                    ->label('Harga')
                     ->numeric()
                     ->prefix('Rp')
                     ->minValue(0)
                     ->rules(['nullable', 'numeric', 'min:0'])
                     ->dehydrated(true),
-                Forms\Components\Select::make('supplier_id')
-                    ->label('Supplier')
-                    ->relationship('supplier', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->nullable()
-                    ->rules(['nullable', 'exists:suppliers,id'])
-                    ->dehydrated(true),
-                Forms\Components\Select::make('category')
-                    ->label('Category')
+                Forms\Components\Select::make('kategori')
+                    ->label('Kategori')
                     ->options([
                         'alat_tulis' => 'Alat Tulis',
                         'perlengkapan_kantor' => 'Perlengkapan Kantor',
@@ -89,34 +108,32 @@ class ItemResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Item Name')
+                    ->label('Nama Barang')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('stock')
-                    ->label('Stock')
+                    ->label('Stok')
+                    ->numeric(),
+                Tables\Columns\TextColumn::make('reorder_point')
+                    ->label('Batas Stok Minimal')
                     ->numeric(),
                 Tables\Columns\TextColumn::make('price')
-                    ->label('Price')
+                    ->label('Harga')
                     ->money('IDR')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('supplier.name')
-                    ->label('Supplier')
-                    ->default('No Supplier')
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('category')
-                    ->label('Category')
+                    ->label('Kategori')
                     ->formatStateUsing(fn (?string $state): string => match ($state) {
                         'alat_tulis' => 'Alat Tulis',
                         'perlengkapan_kantor' => 'Perlengkapan Kantor',
                         'dokumen' => 'Dokumen',
-                        default => 'No Category',
+                        default => 'Tidak Ada Kategori',
                     })
                     ->searchable()
                     ->sortable(),
             ])
-            ->query(fn () => Item::query()->with('supplier')->latest())
             ->filters([
                 SelectFilter::make('category')
-                    ->label('Category')
+                    ->label('Kategori')
                     ->options([
                         'alat_tulis' => 'Alat Tulis',
                         'perlengkapan_kantor' => 'Perlengkapan Kantor',
@@ -126,11 +143,11 @@ class ItemResource extends Resource
                     ->preload(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()->visible(fn () => auth()->user()->hasRole('admin')),
+                Tables\Actions\DeleteAction::make()->visible(fn () => auth()->user()->hasRole('admin')),
             ])
             ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+                Tables\Actions\DeleteBulkAction::make()->visible(fn () => auth()->user()->hasRole('admin')),
             ])
             ->defaultPaginationPageOption(10);
     }

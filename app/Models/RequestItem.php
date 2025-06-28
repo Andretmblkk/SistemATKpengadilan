@@ -10,14 +10,20 @@ class RequestItem extends Model
     use HasFactory;
 
     protected $fillable = [
-        'request_id',
+        'atk_request_id',
         'item_id',
-        'quantity'
+        'quantity',
+        'status',
     ];
+
+    // Status constants
+    const STATUS_PENDING = 'pending';
+    const STATUS_APPROVED = 'approved';
+    const STATUS_REJECTED = 'rejected';
 
     public function request()
     {
-        return $this->belongsTo(Request::class);
+        return $this->belongsTo(AtkRequest::class, 'atk_request_id');
     }
 
     public function item()

@@ -2,7 +2,7 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Request;
+use App\Models\ItemRequest;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -11,16 +11,16 @@ class StatsOverview extends BaseWidget
     protected function getStats(): array
     {
         return [
-            Stat::make('Total Requests', Request::count())
+            Stat::make('Total Requests', ItemRequest::count())
                 ->description('Jumlah permintaan ATK yang diajukan')
                 ->color('primary'),
-            Stat::make('Pending Requests', Request::where('status', 'pending')->count())
+            Stat::make('Pending Requests', ItemRequest::where('status', 'pending')->count())
                 ->description('Permintaan menunggu persetujuan')
                 ->color('warning'),
-            Stat::make('Approved Requests', Request::where('status', 'approved')->count())
+            Stat::make('Approved Requests', ItemRequest::where('status', 'approved')->count())
                 ->description('Permintaan yang disetujui')
                 ->color('success'),
-            Stat::make('Delivered Requests', Request::where('delivery_status', 'delivered')->count())
+            Stat::make('Delivered Requests', ItemRequest::where('delivery_status', 'delivered')->count())
                 ->description('Permintaan yang telah diambil')
                 ->color('info'),
         ];

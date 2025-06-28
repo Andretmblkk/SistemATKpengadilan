@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('items', function (Blueprint $table) {
-            $table->enum('category', ['alat_tulis', 'perlengkapan_kantor', 'dokumen'])->nullable()->after('supplier_id');
+            $table->enum('category', ['alat_tulis', 'perlengkapan_kantor', 'dokumen'])->nullable();
         });
     }
 

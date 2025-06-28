@@ -19,6 +19,7 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use App\Filament\Widgets\StatsOverview;
 use App\Filament\Widgets\RequestsChart;
+use App\Filament\Widgets\NotificationBell;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -33,7 +34,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandName('Sistem ATK PTA Jayapura') // Nama merek aplikasi
             ->authGuard('web') // Menggunakan guard 'web' untuk autentikasi
             ->colors([
-                'primary' => Color::Amber, // Warna utama panel adalah Amber
+                'primary' => '#22c55e', // Warna utama panel adalah Amber
             ])
 
             // Kategori 2: Pengelolaan Sumber Daya (Resources)
@@ -56,8 +57,10 @@ class AdminPanelProvider extends PanelProvider
                 StatsOverview::class, // Widget untuk ringkasan statistik
                 RequestsChart::class, // Widget untuk grafik permintaan
                 Widgets\AccountWidget::class, // Widget untuk informasi akun
+                NotificationBell::class, // Widget notifikasi permintaan ATK
             ])
 
+            
             // Kategori 5: Middleware untuk Keamanan dan Fungsionalitas
             ->middleware([
                 EncryptCookies::class, // Mengenkripsi cookie

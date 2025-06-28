@@ -3,8 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\RequestResource\Pages;
-use App\Models\Request;
-use App\Models\Item;
+use App\Models\AtkRequest;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -16,15 +15,17 @@ use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Models\User;
 
 class RequestResource extends Resource
 {
     // Kategori 1: Konfigurasi Dasar Resource
-    protected static ?string $model = Request::class;
+    protected static ?string $model = AtkRequest::class;
+    protected static ?array $with = ['user', 'requestItems', 'requestItems.item'];
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document';
     protected static ?string $navigationLabel = 'Permintaan Barang';
     protected static ?string $pluralLabel = 'Permintaan Barang';
-    protected static ?string $navigationGroup = 'Inventory';
+    protected static ?string $navigationGroup = 'Inventaris';
 
     // Kategori 2: Formulir untuk Create/Edit
     public static function form(Form $form): Form
@@ -33,28 +34,58 @@ class RequestResource extends Resource
             ->schema([
                 Forms\Components\Select::make('user_id')
                     ->label('Staff')
-                    ->relationship('user', 'name')
+                    ->options(\App\Models\User::all()->pluck('name','id'))
                     ->required()
                     ->default(auth()->id())
                     ->visible(fn () => auth()->user()->hasRole('admin'))
                     ->dehydrated(true),
-                Forms\Components\Select::make('item_id')
-                    ->label('Item')
-                    ->relationship('item', 'name')
-                    ->required()
-                    ->searchable()
-                    ->preload(),
-                Forms\Components\TextInput::make('quantity')
-                    ->label('Jumlah')
-                    ->required()
-                    ->numeric()
-                    ->minValue(1),
+                Forms\Components\Repeater::make('items')
+                    ->label('Daftar Barang')
+                    ->schema([
+                        Forms\Components\Select::make('item_id')
+                            ->label('Barang')
+                            ->options(\App\Models\Item::all()->pluck('name','id'))
+                            ->required()
+                            ->searchable()
+                            ->preload()
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                $item = \App\Models\Item::find($state);
+                                $set('stock', $item ? $item->stock : null);
+                            })
+                            ->helperText(function ($state) {
+                                $item = \App\Models\Item::find($state);
+                                return $item ? 'Stok saat ini: ' . $item->stock : 'Pilih barang untuk melihat stok.';
+                            }),
+                        Forms\Components\Hidden::make('stock'),
+                        Forms\Components\TextInput::make('quantity')
+                            ->label('Jumlah')
+                            ->required()
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(fn ($get) => $get('stock') ?? null)
+                            ->helperText(fn ($get) => $get('stock') !== null ? 'Maksimal: ' . $get('stock') : null),
+                    ])
+                    ->minItems(1)
+                    ->createItemButtonLabel('Tambah Barang')
+                    ->columnSpanFull()
+                    ->disableItemCreation(false)
+                    ->disableItemDeletion(false)
+                    ->rules([
+                        function ($state) {
+                            $itemIds = collect($state)->pluck('item_id');
+                            if ($itemIds->count() !== $itemIds->unique()->count()) {
+                                return 'Tidak boleh ada barang yang sama dalam satu permintaan.';
+                            }
+                            return null;
+                        }
+                    ]),
                 Forms\Components\Select::make('status')
                     ->label('Status')
                     ->options([
-                        'pending' => 'Pending',
-                        'approved' => 'Approved',
-                        'rejected' => 'Rejected',
+                        'pending' => 'Menunggu',
+                        'approved' => 'Disetujui',
+                        'rejected' => 'Ditolak',
                     ])
                     ->default('pending')
                     ->required()
@@ -67,7 +98,6 @@ class RequestResource extends Resource
                     ])
                     ->default('not_delivered')
                     ->required()
-                    // Hanya muncul saat edit dan status adalah 'approved'
                     ->visible(fn ($get, $operation, $record) => $operation === 'edit' && $get('status') === 'approved')
                     ->disabled(fn ($get) => $get('status') !== 'approved')
                     ->helperText('Hanya dapat diubah jika status permintaan adalah Approved.')
@@ -79,168 +109,78 @@ class RequestResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->with(['requestItems.item', 'user']))
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Staff')
-                    ->visible(fn () => auth()->user()->hasRole('admin'))
                     ->searchable(),
-                Tables\Columns\TextColumn::make('item.name')
-                    ->label('Item')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('quantity')
-                    ->label('Jumlah')
-                    ->numeric(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Tanggal Pengajuan')
+                    ->dateTime('d-m-Y H:i'),
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
-                    ->formatStateUsing(fn (?string $state): string => match ($state) {
-                        'pending' => 'Pending',
-                        'approved' => 'Approved',
-                        'rejected' => 'Rejected',
-                        default => 'Tidak Diketahui',
+                    ->badge()
+                    ->color(fn ($state) => match ($state) {
+                        'pending' => 'warning', // kuning
+                        'approved' => 'success', // hijau
+                        'rejected' => 'danger', // merah
+                        default => 'secondary', // abu-abu
                     })
                     ->sortable(),
-                Tables\Columns\TextColumn::make('delivery_status')
-                    ->label('Status Pengambilan')
-                    ->formatStateUsing(fn (?string $state): string => match ($state) {
-                        'not_delivered' => 'Belum Diambil',
-                        'delivered' => 'Sudah Diambil',
-                        default => 'Tidak Diketahui',
+                Tables\Columns\TextColumn::make('requestItems')
+                    ->label('Barang Diajukan')
+                    ->formatStateUsing(function ($state, $record) {
+                        if (!$record->requestItems || $record->requestItems->count() === 0) {
+                            return 'Tidak ada barang';
+                        }
+                        return $record->requestItems->map(function($item) {
+                            return $item->item ? $item->item->name : '-';
+                        })->implode(', ');
                     })
-                    ->sortable(),
+                    ->wrap()
+                    ->limit(50),
             ])
             ->filters([
                 SelectFilter::make('status')
                     ->label('Status')
                     ->options([
-                        'pending' => 'Pending',
-                        'approved' => 'Approved',
-                        'rejected' => 'Rejected',
-                    ])
-                    ->multiple()
-                    ->preload(),
-                SelectFilter::make('delivery_status')
-                    ->label('Status Pengambilan')
-                    ->options([
-                        'not_delivered' => 'Belum Diambil',
-                        'delivered' => 'Sudah Diambil',
+                        'pending' => 'Menunggu',
+                        'approved' => 'Disetujui',
+                        'rejected' => 'Ditolak',
                     ])
                     ->multiple()
                     ->preload(),
             ])
             ->actions([
-                // Aksi Approve
-                Action::make('approve')
-                    ->label('Setujui')
-                    ->action(function ($record) {
-                        try {
-                            DB::beginTransaction();
-                            $item = Item::find($record->item_id);
-                            if (!$item) {
-                                Log::error('Item tidak ditemukan untuk request ID: ' . $record->id . ', item_id: ' . $record->item_id);
-                                Notification::make()
-                                    ->title('Gagal')
-                                    ->body('Item tidak ditemukan.')
-                                    ->danger()
-                                    ->send();
-                                return;
-                            }
-                            if ($item->stock >= $record->quantity) {
-                                $item->decrement('stock', $record->quantity);
-                                $record->update(['status' => 'approved']);
-                                DB::commit();
-                                Log::info('Permintaan disetujui, stok dikurangi. Request ID: ' . $record->id . ', Item ID: ' . $item->id . ', Jumlah: ' . $record->quantity . ', Stok tersisa: ' . $item->stock);
-                                Notification::make()
-                                    ->title('Permintaan disetujui')
-                                    ->body('Stok item ' . $item->name . ' telah dikurangi sebanyak ' . $record->quantity . '.')
-                                    ->success()
-                                    ->send();
-                            } else {
-                                Log::warning('Stok tidak cukup untuk request ID: ' . $record->id . ', Item ID: ' . $item->id . ', Stok tersedia: ' . $item->stock . ', Diminta: ' . $record->quantity);
-                                Notification::make()
-                                    ->title('Stok tidak cukup')
-                                    ->body('Stok item ' . $item->name . ' hanya ' . $item->stock . ' unit.')
-                                    ->danger()
-                                    ->send();
-                                DB::rollBack();
-                            }
-                        } catch (\Exception $e) {
-                            DB::rollBack();
-                            Log::error('Error saat menyetujui permintaan ID: ' . $record->id . ', Pesan: ' . $e->getMessage());
-                            Notification::make()
-                                ->title('Gagal')
-                                ->body('Terjadi kesalahan: ' . $e->getMessage())
-                                ->danger()
-                                ->send();
-                        }
+                Tables\Actions\Action::make('view')
+                    ->label('Lihat Detail')
+                    ->icon('heroicon-o-eye')
+                    ->color('info')
+                    ->modalHeading('Detail Permintaan Barang')
+                    ->modalContent(function ($record) {
+                        return view('filament.resources.request-resource.pages.modal-content', [
+                            'requestId' => $record->id
+                        ]);
                     })
+                    ->modalActions([
+                        \Filament\Actions\Action::make('close')
+                            ->label('Tutup')
+                            ->color('gray')
+                            ->close()
+                    ]),
+                Action::make('approveSelected')
+                    ->label('Setujui yang Dipilih')
+                    ->action('approveSelected')
+                    ->color('success')
                     ->requiresConfirmation()
-                    ->visible(fn ($record) => $record->status === 'pending')
-                    ->authorize(fn () => auth()->user()->hasAnyRole(['admin', 'pimpinan']))
-                    ->color('success'),
-                // Aksi Reject
-                Action::make('reject')
-                    ->label('Tolak')
-                    ->action(function ($record) {
-                        try {
-                            $record->update(['status' => 'rejected']);
-                            Log::info('Permintaan ditolak. Request ID: ' . $record->id);
-                            Notification::make()
-                                ->title('Permintaan ditolak')
-                                ->success()
-                                ->send();
-                        } catch (\Exception $e) {
-                            Log::error('Error saat menolak permintaan ID: ' . $record->id . ', Pesan: ' . $e->getMessage());
-                            Notification::make()
-                                ->title('Gagal')
-                                ->body('Terjadi kesalahan: ' . $e->getMessage())
-                                ->danger()
-                                ->send();
-                        }
-                    })
+                    ->visible(fn () => auth()->user() && auth()->user()->hasRole('pimpinan')),
+                Action::make('rejectSelected')
+                    ->label('Tolak yang Dipilih')
+                    ->action('rejectSelected')
+                    ->color('danger')
                     ->requiresConfirmation()
-                    ->visible(fn ($record) => $record->status === 'pending')
-                    ->authorize(fn () => auth()->user()->hasAnyRole(['admin', 'pimpinan']))
-                    ->color('danger'),
-                // Aksi Mark as Delivered
-                Action::make('mark_delivered')
-                    ->label('Tandai Diambil')
-                    ->action(function ($record) {
-                        try {
-                            if ($record->status !== 'approved') {
-                                Notification::make()
-                                    ->title('Gagal')
-                                    ->body('Permintaan harus disetujui sebelum ditandai sebagai diambil.')
-                                    ->danger()
-                                    ->send();
-                                return;
-                            }
-                            $record->update(['delivery_status' => 'delivered']);
-                            Log::info('Permintaan ditandai sebagai diambil. Request ID: ' . $record->id);
-                            Notification::make()
-                                ->title('Berhasil')
-                                ->body('Permintaan telah ditandai sebagai diambil.')
-                                ->success()
-                                ->send();
-                        } catch (\Exception $e) {
-                            Log::error('Error saat menandai permintaan sebagai diambil ID: ' . $record->id . ', Pesan: ' . $e->getMessage());
-                            Notification::make()
-                                ->title('Gagal')
-                                ->body('Terjadi kesalahan: ' . $e->getMessage())
-                                ->danger()
-                                ->send();
-                        }
-                    })
-                    ->requiresConfirmation()
-                    ->visible(fn ($record) => $record->status === 'approved' && $record->delivery_status === 'not_delivered')
-                    ->authorize(fn () => auth()->user()->hasAnyRole(['admin', 'staff']))
-                    ->color('info'),
-                Tables\Actions\EditAction::make()->visible(fn () => auth()->user()->hasRole('admin')),
-                Tables\Actions\ViewAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make()->visible(fn () => auth()->user()->hasRole('admin')),
-            ])
-            ->defaultPaginationPageOption(10);
+                    ->visible(fn () => auth()->user() && auth()->user()->hasRole('pimpinan')),
+            ]);
     }
 
     // Kategori 4: Pengelolaan Halaman
@@ -255,23 +195,65 @@ class RequestResource extends Resource
     }
 
     // Kategori 5: Pengaturan Hak Akses
+    public static function canAccess(): bool
+    {
+        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'staff', 'pimpinan']);
+    }
+
     public static function canCreate(array $parameters = []): bool
     {
-        return auth()->user()->hasRole('staff') || auth()->user()->hasRole('admin');
+        return auth()->check() && auth()->user()->hasAnyRole(['staff', 'admin']);
     }
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()->hasRole('admin');
+        return auth()->check() && (
+            auth()->user()->hasRole('admin') ||
+            (auth()->user()->hasRole('staff') && $record->user_id === auth()->id())
+        );
     }
 
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()->hasRole('admin');
+        return auth()->check() && auth()->user()->hasRole('admin');
     }
 
     public static function canView(Model $record): bool
     {
-        return auth()->user()->hasRole('staff') || auth()->user()->hasRole('admin');
+        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'staff', 'pimpinan']);
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'staff', 'pimpinan']);
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        $pendingCount = \App\Models\AtkRequest::whereHas('requestItems', function($q) {
+            $q->where('status', \App\Models\RequestItem::STATUS_PENDING);
+        })->count();
+        return $pendingCount > 0 ? (string) $pendingCount : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        $total = \App\Models\AtkRequest::count();
+        $pending = \App\Models\AtkRequest::whereHas('requestItems', function($q) {
+            $q->where('status', \App\Models\RequestItem::STATUS_PENDING);
+        })->count();
+        $approved = \App\Models\AtkRequest::whereDoesntHave('requestItems', function($q) {
+            $q->where('status', \App\Models\RequestItem::STATUS_PENDING);
+        })->whereHas('requestItems', function($q) {
+            $q->where('status', \App\Models\RequestItem::STATUS_APPROVED);
+        })->count();
+        if ($pending > 0) {
+            return 'danger'; // merah
+        } elseif ($approved > 0 && $approved == $total) {
+            return 'success'; // hijau
+        } elseif ($approved > 0 && $pending == 0) {
+            return 'warning'; // kuning (campuran)
+        }
+        return 'secondary';
     }
 }
