@@ -16,4 +16,10 @@ class EditUser extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    protected function afterSave(): void
+    {
+        $roles = $this->data['roles'] ?? [];
+        $this->record->syncRoles($roles);
+    }
 }

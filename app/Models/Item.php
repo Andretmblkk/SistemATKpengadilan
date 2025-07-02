@@ -10,6 +10,6 @@ class Item extends Model
 
     public function requests()
     {
-        return $this->hasMany(Request::class);
+        return $this->hasMany(ItemRequest::class, 'item_id');
     }
 }

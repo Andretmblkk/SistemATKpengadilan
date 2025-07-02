@@ -7,7 +7,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Report extends Model
 {
-    protected $fillable = ['user_id', 'title', 'description', 'file_path', 'report_date'];
+    const STATUS_DIKIRIM = 'dikirim';
+    const STATUS_DITERIMA = 'diterima';
+
+    protected $fillable = ['user_id', 'title', 'description', 'file_path', 'report_date', 'status'];
 
     protected $casts = [
         'report_date' => 'date',

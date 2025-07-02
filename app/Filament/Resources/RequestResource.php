@@ -25,6 +25,8 @@ class RequestResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document';
     protected static ?string $navigationLabel = 'Permintaan Barang';
     protected static ?string $pluralLabel = 'Permintaan Barang';
+    protected static ?string $modelLabel = 'Permintaan';
+    protected static ?string $recordTitleAttribute = 'id';
     protected static ?string $navigationGroup = 'Inventaris';
 
     // Kategori 2: Formulir untuk Create/Edit
@@ -80,16 +82,8 @@ class RequestResource extends Resource
                             return null;
                         }
                     ]),
-                Forms\Components\Select::make('status')
-                    ->label('Status')
-                    ->options([
-                        'pending' => 'Menunggu',
-                        'approved' => 'Disetujui',
-                        'rejected' => 'Ditolak',
-                    ])
-                    ->default('pending')
-                    ->required()
-                    ->disabled(fn () => !auth()->user()->hasAnyRole(['admin', 'pimpinan'])),
+                // Sembunyikan field status dari form
+                // Forms\Components\Select::make('status') ... (hapus/komentar)
                 Forms\Components\Select::make('delivery_status')
                     ->label('Status Pengambilan')
                     ->options([
@@ -168,18 +162,10 @@ class RequestResource extends Resource
                             ->color('gray')
                             ->close()
                     ]),
-                Action::make('approveSelected')
-                    ->label('Setujui yang Dipilih')
-                    ->action('approveSelected')
-                    ->color('success')
-                    ->requiresConfirmation()
-                    ->visible(fn () => auth()->user() && auth()->user()->hasRole('pimpinan')),
-                Action::make('rejectSelected')
-                    ->label('Tolak yang Dipilih')
-                    ->action('rejectSelected')
-                    ->color('danger')
-                    ->requiresConfirmation()
-                    ->visible(fn () => auth()->user() && auth()->user()->hasRole('pimpinan')),
+            ])
+            ->bulkActions([
+                Tables\Actions\DeleteBulkAction::make()
+                    ->visible(fn () => auth()->user()->hasRole('admin')),
             ]);
     }
 
@@ -197,7 +183,7 @@ class RequestResource extends Resource
     // Kategori 5: Pengaturan Hak Akses
     public static function canAccess(): bool
     {
-        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'staff', 'pimpinan']);
+        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'staff']);
     }
 
     public static function canCreate(array $parameters = []): bool
@@ -207,25 +193,30 @@ class RequestResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->check() && (
-            auth()->user()->hasRole('admin') ||
-            (auth()->user()->hasRole('staff') && $record->user_id === auth()->id())
-        );
+        // Admin bisa edit apapun
+        if (auth()->user()->hasRole('admin')) {
+            return true;
+        }
+        // Staff hanya bisa edit permintaan milik sendiri dan status masih pending
+        if (auth()->user()->hasRole('staff') && $record->user_id === auth()->id() && $record->status === 'pending') {
+            return true;
+        }
+        return false;
     }
 
-    public static function canDelete(Model $record): bool
+    public static function canDelete($record): bool
     {
         return auth()->check() && auth()->user()->hasRole('admin');
     }
 
     public static function canView(Model $record): bool
     {
-        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'staff', 'pimpinan']);
+        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'staff']);
     }
 
     public static function shouldRegisterNavigation(): bool
     {
-        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'staff', 'pimpinan']);
+        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'staff']);
     }
 
     public static function getNavigationBadge(): ?string

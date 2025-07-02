@@ -6,7 +6,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class Category extends Model
 {
-    use HasRoles; // Integrasi Spatie untuk izin
+    use HasRoles; 
     protected $table = 'categories';
     protected $primaryKey = 'id';
     public $incrementing = false;

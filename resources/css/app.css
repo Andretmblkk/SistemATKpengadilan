@@ -1,3 +1,5 @@
+@import './filament/custom-login.css';
+
 /* Hijaukan panel utama, card, dan sidebar Filament */
 .filament-main {
     background-color: #e8fbe8 !important; /* hijau muda */

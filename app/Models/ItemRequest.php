@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 
 class ItemRequest extends Model
 {
-    protected $table = 'requests';
+    protected $table = 'atk_requests';
     
     protected $fillable = ['user_id', 'item_id', 'quantity', 'status', 'delivery_status'];
 

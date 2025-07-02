@@ -53,7 +53,7 @@ class ViewRequest extends ViewRecord
         }
     }
 
-    public function approveSelected()
+    public function updateDeliveryStatus()
     {
         if (empty($this->selectedItems)) {
             Notification::make()
@@ -75,52 +75,15 @@ class ViewRequest extends ViewRecord
             return;
         }
 
-        DB::beginTransaction();
-        try {
-            foreach ($items as $item) {
-                if ($item->status === 'pending') {
-                    $item->status = 'approved';
-                    $item->approved_at = now();
-                    $item->approved_by = auth()->id();
-                    $item->save();
-                }
-            }
-            DB::commit();
-            Notification::make()
-                ->title('Berhasil')
-                ->body('Item terpilih disetujui.')
-                ->success()
-                ->send();
-            $this->selectedItems = [];
-            $this->approveAll = false;
-            $this->record->refresh();
-        } catch (\Exception $e) {
-            DB::rollBack();
+        // Check if all selected items are approved
+        $allApproved = $items->every(function ($item) {
+            return $item->status === 'approved';
+        });
+
+        if (!$allApproved) {
             Notification::make()
                 ->title('Gagal')
-                ->body('Terjadi kesalahan: ' . $e->getMessage())
-                ->danger()
-                ->send();
-        }
-    }
-
-    public function rejectSelected()
-    {
-        if (empty($this->selectedItems)) {
-            Notification::make()
-                ->title('Gagal')
-                ->body('Tidak ada item yang dipilih.')
-                ->danger()
-                ->send();
-            return;
-        }
-
-        $items = $this->record->requestItems()->whereIn('id', $this->selectedItems)->get();
-
-        if ($items->isEmpty()) {
-            Notification::make()
-                ->title('Gagal')
-                ->body('Item yang dipilih tidak ditemukan.')
+                ->body('Hanya item yang sudah disetujui yang bisa diupdate status pengambilannya.')
                 ->danger()
                 ->send();
             return;
@@ -128,18 +91,14 @@ class ViewRequest extends ViewRecord
 
         DB::beginTransaction();
         try {
-            foreach ($items as $item) {
-                if ($item->status === 'pending') {
-                    $item->status = 'rejected';
-                    $item->rejected_at = now();
-                    $item->rejected_by = auth()->id();
-                    $item->save();
-                }
-            }
+            // Update delivery status to delivered
+            $this->record->delivery_status = 'delivered';
+            $this->record->save();
+            
             DB::commit();
             Notification::make()
                 ->title('Berhasil')
-                ->body('Item terpilih ditolak.')
+                ->body('Status pengambilan berhasil diupdate menjadi "Sudah Diambil".')
                 ->success()
                 ->send();
             $this->selectedItems = [];
@@ -183,11 +142,18 @@ class ViewRequest extends ViewRecord
             $item->approved_at = now();
             $item->approved_by = auth()->id();
             $item->save();
+
+            // Kurangi stok item sesuai jumlah yang disetujui
+            $itemModel = $item->item;
+            if ($itemModel) {
+                $itemModel->stock = max(0, $itemModel->stock - $item->quantity);
+                $itemModel->save(); // Akan trigger observer otomatis
+            }
             
             DB::commit();
             Notification::make()
                 ->title('Berhasil')
-                ->body('Item disetujui.')
+                ->body('Item disetujui dan stok otomatis dikurangi.')
                 ->success()
                 ->send();
             $this->record->refresh();
@@ -247,6 +213,48 @@ class ViewRequest extends ViewRecord
         }
     }
 
+    public function setReadyToPickup($itemId)
+    {
+        $item = $this->record->requestItems()->find($itemId);
+        if (!$item) {
+            Notification::make()
+                ->title('Gagal')
+                ->body('Item tidak ditemukan.')
+                ->danger()
+                ->send();
+            return;
+        }
+        if ($item->status !== 'approved') {
+            Notification::make()
+                ->title('Gagal')
+                ->body('Hanya item yang sudah disetujui yang bisa diubah menjadi boleh diambil.')
+                ->danger()
+                ->send();
+            return;
+        }
+        DB::beginTransaction();
+        try {
+            $item->status = 'ready_to_pickup';
+            $item->ready_to_pickup_at = now();
+            $item->ready_to_pickup_by = auth()->id();
+            $item->save();
+            DB::commit();
+            Notification::make()
+                ->title('Berhasil')
+                ->body('Status item diubah menjadi boleh diambil.')
+                ->success()
+                ->send();
+            $this->record->refresh();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Notification::make()
+                ->title('Gagal')
+                ->body('Terjadi kesalahan: ' . $e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -257,7 +265,7 @@ class ViewRequest extends ViewRecord
                 ->icon('heroicon-o-eye')
                 ->color('info')
                 ->modalHeading('Detail Permintaan & Approve')
-                ->modalDescription('Lihat detail barang dan lakukan approve/reject')
+                ->modalDescription('Lihat detail barang dan lakukan approve atau update status pengambilan')
                 ->modalContent(view('filament.resources.request-resource.pages.modal-content', [
                     'request' => $this->record,
                     'selectedItems' => $this->selectedItems,
@@ -265,23 +273,17 @@ class ViewRequest extends ViewRecord
                 ]))
                 ->modalActions([
                     Action::make('approveSelected')
-                        ->label(fn () => 'Setujui yang Dipilih (' . count($this->selectedItems) . ')')
+                        ->label(fn () => 'Status Diantar/Diambil (' . count($this->selectedItems) . ')')
                         ->color('success')
                         ->icon('heroicon-o-check')
-                        ->action('approveSelected')
-                        ->visible(fn () => count($this->selectedItems) > 0),
-                    Action::make('rejectSelected')
-                        ->label(fn () => 'Tolak yang Dipilih (' . count($this->selectedItems) . ')')
-                        ->color('danger')
-                        ->icon('heroicon-o-x-mark')
-                        ->action('rejectSelected')
-                        ->visible(fn () => count($this->selectedItems) > 0),
+                        ->action('updateDeliveryStatus')
+                        ->visible(fn () => count($this->selectedItems) > 0 && $this->record->requestItems->whereIn('id', $this->selectedItems)->every(fn($item) => $item->status === 'approved')),
                     Action::make('close')
                         ->label('Tutup')
                         ->color('gray')
                         ->close()
                 ])
-                ->visible(fn () => auth()->user() && auth()->user()->hasRole('pimpinan')),
+                ->visible(fn () => auth()->user() && auth()->user()->hasRole('admin')),
             \Filament\Actions\DeleteAction::make()
                 ->label('Hapus Permintaan')
                 ->visible(fn () => auth()->user() && auth()->user()->hasRole('admin')),

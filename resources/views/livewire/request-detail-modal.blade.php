@@ -37,6 +37,14 @@
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                                     Ditolak
                                 </span>
+                            @elseif($request->status === 'sebagian_disetujui')
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    Sebagian Disetujui
+                                </span>
+                            @else
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    Tidak Diketahui
+                                </span>
                             @endif
                         </span>
                     </div>
@@ -47,7 +55,7 @@
             <div class="space-y-3 max-h-96 overflow-y-auto">
                 @if($request->requestItems && $request->requestItems->count() > 0)
                     @foreach($request->requestItems as $item)
-                    <div class="border rounded-lg p-4 {{ $item->status !== 'pending' ? 'bg-gray-50' : '' }}">
+                    <div class="border rounded-lg p-4 {{ $item->status !== 'menunggu' ? 'bg-gray-50' : '' }}">
                         <div class="flex justify-between items-start">
                             <div class="flex-1">
                                 <h4 class="text-sm font-medium text-gray-900">{{ $item->item ? $item->item->name : 'N/A' }}</h4>
@@ -69,28 +77,26 @@
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                                         Ditolak
                                     </span>
+                                @else
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        Tidak Diketahui
+                                    </span>
                                 @endif
                             </div>
                         </div>
                         
-                        @if($item->status === 'pending' && auth()->user()->hasRole('pimpinan'))
+                        @if($item->status === 'pending' && auth()->user()->hasRole('admin'))
                         <div class="flex space-x-2 mt-3">
                             <button
                                 wire:click="approveSingle({{ $item->id }})"
-                                class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                class="px-3 py-1 rounded border border-green-600 text-green-700 dark:text-green-400 font-bold text-xs bg-transparent hover:bg-green-50 dark:hover:bg-green-900"
                             >
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
                                 Setujui
                             </button>
                             <button
                                 wire:click="rejectSingle({{ $item->id }})"
-                                class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                class="px-3 py-1 rounded border border-red-600 text-red-700 dark:text-red-400 font-bold text-xs bg-transparent hover:bg-red-50 dark:hover:bg-red-900"
                             >
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
                                 Tolak
                             </button>
                         </div>
@@ -109,23 +115,23 @@
                 <h4 class="text-sm font-medium text-gray-900 mb-2">Ringkasan Status:</h4>
                 <div class="flex space-x-4 text-sm">
                     @php
-                        $pendingCount = $request->requestItems ? $request->requestItems->where('status', 'pending')->count() : 0;
-                        $approvedCount = $request->requestItems ? $request->requestItems->where('status', 'approved')->count() : 0;
-                        $rejectedCount = $request->requestItems ? $request->requestItems->where('status', 'rejected')->count() : 0;
+                        $menungguCount = $request->requestItems ? $request->requestItems->where('status', 'pending')->count() : 0;
+                        $disetujuiCount = $request->requestItems ? $request->requestItems->where('status', 'approved')->count() : 0;
+                        $ditolakCount = $request->requestItems ? $request->requestItems->where('status', 'rejected')->count() : 0;
                     @endphp
-                    @if($pendingCount > 0)
+                    @if($menungguCount > 0)
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                            {{ $pendingCount }} Menunggu
+                            {{ $menungguCount }} Menunggu
                         </span>
                     @endif
-                    @if($approvedCount > 0)
+                    @if($disetujuiCount > 0)
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            {{ $approvedCount }} Disetujui
+                            {{ $disetujuiCount }} Disetujui
                         </span>
                     @endif
-                    @if($rejectedCount > 0)
+                    @if($ditolakCount > 0)
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            {{ $rejectedCount }} Ditolak
+                            {{ $ditolakCount }} Ditolak
                         </span>
                     @endif
                 </div>

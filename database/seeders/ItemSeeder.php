@@ -9,6 +9,10 @@ class ItemSeeder extends Seeder
 {
     public function run(): void
     {
+        \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        Item::truncate();
+        \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
         $items = [
             // Kategori: Alat Tulis
             [
@@ -59,6 +63,14 @@ class ItemSeeder extends Seeder
                 'price' => 6000,
                 'category' => 'alat_tulis',
             ],
+            [
+                'name' => 'Pulpen Merah (Buah)',
+                'description' => 'Pulpen tinta warna merah, merek Standard',
+                'stock' => 2,
+                'reorder_point' => 10,
+                'price' => 3500,
+                'category' => 'alat_tulis',
+            ],
 
             // Kategori: Perlengkapan Kantor
             [
@@ -75,6 +87,14 @@ class ItemSeeder extends Seeder
                 'stock' => 25,
                 'reorder_point' => 5,
                 'price' => 65000,
+                'category' => 'perlengkapan_kantor',
+            ],
+            [
+                'name' => 'Kertas HVS B5 (Rim)',
+                'description' => 'Kertas HVS ukuran B5 80gsm, merek PaperOne',
+                'stock' => 1,
+                'reorder_point' => 5,
+                'price' => 50000,
                 'category' => 'perlengkapan_kantor',
             ],
             [
@@ -181,6 +201,14 @@ class ItemSeeder extends Seeder
                 'stock' => 10,
                 'reorder_point' => 2,
                 'price' => 25000,
+                'category' => 'dokumen',
+            ],
+            [
+                'name' => 'Buku Notulen (Buah)',
+                'description' => 'Buku notulen rapat',
+                'stock' => 0,
+                'reorder_point' => 3,
+                'price' => 20000,
                 'category' => 'dokumen',
             ],
         ];

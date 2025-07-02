@@ -1,3 +1,66 @@
 @import '../../../../vendor/filament/filament/resources/css/theme.css';
 
 @config 'tailwind.config.js';
+
+/* Custom button styles with borders for better visibility in dark/light modes */
+.fi-btn {
+    @apply border-2 shadow-sm;
+}
+
+.fi-btn-primary {
+    @apply border-primary-700 dark:border-primary-400;
+}
+
+.fi-btn-success {
+    @apply border-success-700 dark:border-success-400;
+}
+
+.fi-btn-danger {
+    @apply border-danger-700 dark:border-danger-400;
+}
+
+.fi-btn-warning {
+    @apply border-warning-700 dark:border-warning-400;
+}
+
+.fi-btn-info {
+    @apply border-info-700 dark:border-info-400;
+}
+
+.fi-btn-secondary {
+    @apply border-gray-700 dark:border-gray-400;
+}
+
+/* Filament repeater add button styling */
+.fi-repeater-add-button {
+    @apply border-2 border-primary-700 dark:border-primary-400 shadow-sm;
+}
+
+/* Filament action buttons */
+.fi-ac-btn {
+    @apply border-2 shadow-sm;
+}
+
+.fi-ac-btn-primary {
+    @apply border-primary-700 dark:border-primary-400;
+}
+
+.fi-ac-btn-success {
+    @apply border-success-700 dark:border-success-400;
+}
+
+.fi-ac-btn-danger {
+    @apply border-danger-700 dark:border-danger-400;
+}
+
+.fi-ac-btn-warning {
+    @apply border-warning-700 dark:border-warning-400;
+}
+
+.fi-ac-btn-info {
+    @apply border-info-700 dark:border-info-400;
+}
+
+.fi-ac-btn-secondary {
+    @apply border-gray-700 dark:border-gray-400;
+}

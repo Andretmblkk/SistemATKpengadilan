@@ -19,6 +19,8 @@ class ItemResource extends Resource
 
     protected static ?string $navigationLabel = 'Barang';
 
+    protected static ?string $pluralLabel = 'Barang';
+
     protected static ?string $navigationGroup = 'Inventaris';
 
     public static function canAccess(): bool
@@ -88,16 +90,6 @@ class ItemResource extends Resource
                     ->minValue(0)
                     ->rules(['nullable', 'numeric', 'min:0'])
                     ->dehydrated(true),
-                Forms\Components\Select::make('kategori')
-                    ->label('Kategori')
-                    ->options([
-                        'alat_tulis' => 'Alat Tulis',
-                        'perlengkapan_kantor' => 'Perlengkapan Kantor',
-                        'dokumen' => 'Dokumen',
-                    ])
-                    ->required()
-                    ->rules(['required', 'in:alat_tulis,perlengkapan_kantor,dokumen'])
-                    ->dehydrated(true),
             ])
             ->statePath('data')
             ->reactive();
@@ -120,16 +112,6 @@ class ItemResource extends Resource
                     ->label('Harga')
                     ->money('IDR')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('category')
-                    ->label('Kategori')
-                    ->formatStateUsing(fn (?string $state): string => match ($state) {
-                        'alat_tulis' => 'Alat Tulis',
-                        'perlengkapan_kantor' => 'Perlengkapan Kantor',
-                        'dokumen' => 'Dokumen',
-                        default => 'Tidak Ada Kategori',
-                    })
-                    ->searchable()
-                    ->sortable(),
             ])
             ->filters([
                 SelectFilter::make('category')
@@ -143,7 +125,16 @@ class ItemResource extends Resource
                     ->preload(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make()->visible(fn () => auth()->user()->hasRole('admin')),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn () => auth()->user()->hasRole('admin'))
+                    ->after(function ($record) {
+                        if ($record->stock <= $record->reorder_point && $record->reorder_point > 0) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Stok mencapai batas minimal, pengajuan pembelian otomatis dicek/dibuat')
+                                ->success()
+                                ->send();
+                        }
+                    }),
                 Tables\Actions\DeleteAction::make()->visible(fn () => auth()->user()->hasRole('admin')),
             ])
             ->bulkActions([

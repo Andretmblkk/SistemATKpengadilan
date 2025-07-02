@@ -41,3 +41,298 @@
     background-color: #4338ca;
     transform: translateY(-1px);
 }
+
+/* Universal button border styling for all Filament buttons */
+button[type="submit"],
+button[type="button"],
+.fi-btn,
+.fi-ac-btn,
+.fi-ta-action,
+.fi-mo-action,
+.fi-he-action,
+[data-filament-button],
+[role="button"],
+.x-filament-button,
+.x-filament-actions-action {
+    @apply border-2 shadow-sm !important;
+}
+
+/* Ensure text is always visible */
+button[type="submit"],
+button[type="button"],
+.fi-btn,
+.fi-ac-btn,
+.fi-ta-action,
+.fi-mo-action,
+.fi-he-action,
+[data-filament-button],
+[role="button"],
+.x-filament-button,
+.x-filament-actions-action {
+    @apply text-white !important;
+}
+
+/* Color-specific borders */
+.x-filament-button[data-color="primary"],
+.fi-btn-primary,
+.fi-ac-btn-primary,
+.fi-ta-action[data-color="primary"],
+.fi-mo-action[data-color="primary"],
+.fi-he-action[data-color="primary"] {
+    @apply border-primary-700 dark:border-primary-400 !important;
+}
+
+.x-filament-button[data-color="success"],
+.fi-btn-success,
+.fi-ac-btn-success,
+.fi-ta-action[data-color="success"],
+.fi-mo-action[data-color="success"],
+.fi-he-action[data-color="success"] {
+    @apply border-success-700 dark:border-success-400 !important;
+}
+
+.x-filament-button[data-color="danger"],
+.fi-btn-danger,
+.fi-ac-btn-danger,
+.fi-ta-action[data-color="danger"],
+.fi-mo-action[data-color="danger"],
+.fi-he-action[data-color="danger"] {
+    @apply border-danger-700 dark:border-danger-400 !important;
+}
+
+.x-filament-button[data-color="warning"],
+.fi-btn-warning,
+.fi-ac-btn-warning,
+.fi-ta-action[data-color="warning"],
+.fi-mo-action[data-color="warning"],
+.fi-he-action[data-color="warning"] {
+    @apply border-warning-700 dark:border-warning-400 !important;
+}
+
+.x-filament-button[data-color="info"],
+.fi-btn-info,
+.fi-ac-btn-info,
+.fi-ta-action[data-color="info"],
+.fi-mo-action[data-color="info"],
+.fi-he-action[data-color="info"] {
+    @apply border-info-700 dark:border-info-400 !important;
+}
+
+.x-filament-button[data-color="secondary"],
+.fi-btn-secondary,
+.fi-ac-btn-secondary,
+.fi-ta-action[data-color="secondary"],
+.fi-mo-action[data-color="secondary"],
+.fi-he-action[data-color="secondary"] {
+    @apply border-gray-700 dark:border-gray-400 !important;
+}
+
+/* Custom button styles with borders for better visibility in dark/light modes */
+
+/* Filament button components */
+.fi-btn {
+    @apply border-2 shadow-sm !important;
+}
+
+.fi-btn-primary {
+    @apply border-primary-700 dark:border-primary-400 !important;
+}
+
+.fi-btn-success {
+    @apply border-success-700 dark:border-success-400 !important;
+}
+
+.fi-btn-danger {
+    @apply border-danger-700 dark:border-danger-400 !important;
+}
+
+.fi-btn-warning {
+    @apply border-warning-700 dark:border-warning-400 !important;
+}
+
+.fi-btn-info {
+    @apply border-info-700 dark:border-info-400 !important;
+}
+
+.fi-btn-secondary {
+    @apply border-gray-700 dark:border-gray-400 !important;
+}
+
+/* Filament repeater add button styling */
+.fi-repeater-add-button {
+    @apply border-2 border-primary-700 dark:border-primary-400 shadow-sm !important;
+}
+
+/* Filament action buttons */
+.fi-ac-btn {
+    @apply border-2 shadow-sm !important;
+}
+
+.fi-ac-btn-primary {
+    @apply border-primary-700 dark:border-primary-400 !important;
+}
+
+.fi-ac-btn-success {
+    @apply border-success-700 dark:border-success-400 !important;
+}
+
+.fi-ac-btn-danger {
+    @apply border-danger-700 dark:border-danger-400 !important;
+}
+
+.fi-ac-btn-warning {
+    @apply border-warning-700 dark:border-warning-400 !important;
+}
+
+.fi-ac-btn-info {
+    @apply border-info-700 dark:border-info-400 !important;
+}
+
+.fi-ac-btn-secondary {
+    @apply border-gray-700 dark:border-gray-400 !important;
+}
+
+/* Custom button classes for manual styling */
+.btn-with-border {
+    @apply border-2 shadow-sm;
+}
+
+.btn-primary-border {
+    @apply border-primary-700 dark:border-primary-400;
+}
+
+.btn-success-border {
+    @apply border-success-700 dark:border-success-400;
+}
+
+.btn-danger-border {
+    @apply border-danger-700 dark:border-danger-400;
+}
+
+.btn-warning-border {
+    @apply border-warning-700 dark:border-warning-400;
+}
+
+.btn-info-border {
+    @apply border-info-700 dark:border-info-400;
+}
+
+.btn-secondary-border {
+    @apply border-gray-700 dark:border-gray-400;
+}
+
+/* Filament specific button selectors */
+[data-filament-button] {
+    @apply border-2 shadow-sm !important;
+}
+
+[data-filament-button][data-color="primary"] {
+    @apply border-primary-700 dark:border-primary-400 !important;
+}
+
+[data-filament-button][data-color="success"] {
+    @apply border-success-700 dark:border-success-400 !important;
+}
+
+[data-filament-button][data-color="danger"] {
+    @apply border-danger-700 dark:border-danger-400 !important;
+}
+
+[data-filament-button][data-color="warning"] {
+    @apply border-warning-700 dark:border-warning-400 !important;
+}
+
+[data-filament-button][data-color="info"] {
+    @apply border-info-700 dark:border-info-400 !important;
+}
+
+[data-filament-button][data-color="secondary"] {
+    @apply border-gray-700 dark:border-gray-400 !important;
+}
+
+/* Filament table action buttons */
+.fi-ta-action {
+    @apply border-2 shadow-sm !important;
+}
+
+.fi-ta-action[data-color="primary"] {
+    @apply border-primary-700 dark:border-primary-400 !important;
+}
+
+.fi-ta-action[data-color="success"] {
+    @apply border-success-700 dark:border-success-400 !important;
+}
+
+.fi-ta-action[data-color="danger"] {
+    @apply border-danger-700 dark:border-danger-400 !important;
+}
+
+.fi-ta-action[data-color="warning"] {
+    @apply border-warning-700 dark:border-warning-400 !important;
+}
+
+.fi-ta-action[data-color="info"] {
+    @apply border-info-700 dark:border-info-400 !important;
+}
+
+.fi-ta-action[data-color="secondary"] {
+    @apply border-gray-700 dark:border-gray-400 !important;
+}
+
+/* Filament modal action buttons */
+.fi-mo-action {
+    @apply border-2 shadow-sm !important;
+}
+
+.fi-mo-action[data-color="primary"] {
+    @apply border-primary-700 dark:border-primary-400 !important;
+}
+
+.fi-mo-action[data-color="success"] {
+    @apply border-success-700 dark:border-success-400 !important;
+}
+
+.fi-mo-action[data-color="danger"] {
+    @apply border-danger-700 dark:border-danger-400 !important;
+}
+
+.fi-mo-action[data-color="warning"] {
+    @apply border-warning-700 dark:border-warning-400 !important;
+}
+
+.fi-mo-action[data-color="info"] {
+    @apply border-info-700 dark:border-info-400 !important;
+}
+
+.fi-mo-action[data-color="secondary"] {
+    @apply border-gray-700 dark:border-gray-400 !important;
+}
+
+/* Filament header action buttons */
+.fi-he-action {
+    @apply border-2 shadow-sm !important;
+}
+
+.fi-he-action[data-color="primary"] {
+    @apply border-primary-700 dark:border-primary-400 !important;
+}
+
+.fi-he-action[data-color="success"] {
+    @apply border-success-700 dark:border-success-400 !important;
+}
+
+.fi-he-action[data-color="danger"] {
+    @apply border-danger-700 dark:border-danger-400 !important;
+}
+
+.fi-he-action[data-color="warning"] {
+    @apply border-warning-700 dark:border-warning-400 !important;
+}
+
+.fi-he-action[data-color="info"] {
+    @apply border-info-700 dark:border-info-400 !important;
+}
+
+.fi-he-action[data-color="secondary"] {
+    @apply border-gray-700 dark:border-gray-400 !important;
+}

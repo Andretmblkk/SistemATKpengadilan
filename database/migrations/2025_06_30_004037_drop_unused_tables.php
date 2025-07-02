@@ -11,9 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('items', function (Blueprint $table) {
-            //
-        });
+        // Hapus tabel yang tidak digunakan
+        Schema::dropIfExists('detail_permintaan_atk');
+        Schema::dropIfExists('permintaan_atk');
+        Schema::dropIfExists('barang');
     }
 
     /**
@@ -21,8 +22,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('items', function (Blueprint $table) {
-            //
-        });
+        // Tidak perlu membuat ulang tabel yang tidak digunakan
     }
 };

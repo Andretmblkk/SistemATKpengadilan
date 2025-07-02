@@ -26,7 +26,23 @@ class RequestDetailModal extends Component
     {
         $requestItem = \App\Models\RequestItem::find($itemId);
         if ($requestItem) {
-            $requestItem->update(['status' => 'approved']);
+            $requestItem->update(['status' => 'disetujui']);
+            // Update status utama permintaan
+            $parentRequest = $requestItem->request;
+            $menunggu = $parentRequest->requestItems()->where('status', 'menunggu')->count();
+            $disetujui = $parentRequest->requestItems()->where('status', 'disetujui')->count();
+            $ditolak = $parentRequest->requestItems()->where('status', 'ditolak')->count();
+            $total = $parentRequest->requestItems()->count();
+            if ($disetujui > 0 && $menunggu === 0 && $ditolak === 0) {
+                $parentRequest->status = 'disetujui';
+            } elseif ($disetujui > 0 && ($menunggu > 0 || $ditolak > 0)) {
+                $parentRequest->status = 'sebagian_disetujui';
+            } elseif ($ditolak === $total) {
+                $parentRequest->status = 'ditolak';
+            } else {
+                $parentRequest->status = 'menunggu';
+            }
+            $parentRequest->save();
             $this->loadRequest(); // Reload data
             session()->flash('message', 'Barang berhasil disetujui');
         }
@@ -36,7 +52,23 @@ class RequestDetailModal extends Component
     {
         $requestItem = \App\Models\RequestItem::find($itemId);
         if ($requestItem) {
-            $requestItem->update(['status' => 'rejected']);
+            $requestItem->update(['status' => 'ditolak']);
+            // Update status utama permintaan
+            $parentRequest = $requestItem->request;
+            $menunggu = $parentRequest->requestItems()->where('status', 'menunggu')->count();
+            $disetujui = $parentRequest->requestItems()->where('status', 'disetujui')->count();
+            $ditolak = $parentRequest->requestItems()->where('status', 'ditolak')->count();
+            $total = $parentRequest->requestItems()->count();
+            if ($disetujui > 0 && $menunggu === 0 && $ditolak === 0) {
+                $parentRequest->status = 'disetujui';
+            } elseif ($disetujui > 0 && ($menunggu > 0 || $ditolak > 0)) {
+                $parentRequest->status = 'sebagian_disetujui';
+            } elseif ($ditolak === $total) {
+                $parentRequest->status = 'ditolak';
+            } else {
+                $parentRequest->status = 'menunggu';
+            }
+            $parentRequest->save();
             $this->loadRequest(); // Reload data
             session()->flash('message', 'Barang berhasil ditolak');
         }

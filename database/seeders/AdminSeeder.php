@@ -10,7 +10,7 @@ class Adminseeder extends Seeder
 {
     public function run(): void
     {
-        // Daftar pengguna berdasarkan staf Pengadilan Agama
+        
         $users = [
             [
                 'name' => 'Fatma Ainur Rosyidah',

@@ -17,7 +17,7 @@ use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteBulkAction;
-use App\Models\Role;
+use Spatie\Permission\Models\Role;
 
 class UserResource extends Resource
 {
@@ -43,7 +43,7 @@ class UserResource extends Resource
                 Select::make('roles')
                     ->label('Peran')
                     ->multiple()
-                    ->options(Role::all()->pluck('name', 'id'))
+                    ->options(Role::all()->pluck('name', 'name'))
                     ->preload(),
             ]);
     }

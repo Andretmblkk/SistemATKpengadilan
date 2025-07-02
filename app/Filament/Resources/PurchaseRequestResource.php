@@ -53,6 +53,7 @@ class PurchaseRequestResource extends Resource
         return $form->schema([
             Forms\Components\Select::make('item_id')
                 ->label('Barang')
+                ->options(\App\Models\Item::all()->pluck('name','id'))
                 ->required()
                 ->searchable()
                 ->preload(),
@@ -72,7 +73,9 @@ class PurchaseRequestResource extends Resource
                     'draft' => 'Draft',
                     'waiting_approval' => 'Menunggu Persetujuan',
                     'approved' => 'Disetujui',
+                    'pembelian_diizinkan' => 'Pembelian Diizinkan',
                     'rejected' => 'Ditolak',
+                    'completed' => 'Selesai',
                 ])
                 ->disabled(),
             Forms\Components\Textarea::make('rejection_reason')
@@ -92,11 +95,21 @@ class PurchaseRequestResource extends Resource
                 ->label('Status')
                 ->badge()
                 ->color(fn ($state) => match ($state) {
-                    'waiting_approval' => 'warning', // kuning
-                    'approved'         => 'success', // hijau
-                    'completed'        => 'primary', // biru/hijau
-                    'rejected'         => 'danger',  // merah
-                    default            => 'secondary', // abu-abu
+                    'waiting_approval' => 'warning',
+                    'approved'         => 'success',
+                    'pembelian_diizinkan' => 'primary',
+                    'completed'        => 'success',
+                    'rejected'         => 'danger',
+                    default            => 'secondary',
+                })
+                ->formatStateUsing(fn($state) => match($state) {
+                    'draft' => 'Draft',
+                    'waiting_approval' => 'Menunggu Persetujuan',
+                    'approved' => 'Disetujui',
+                    'pembelian_diizinkan' => 'Pembelian Diizinkan',
+                    'rejected' => 'Ditolak',
+                    'completed' => 'Selesai',
+                    default => ucfirst($state),
                 }),
         ])
         ->filters([])
@@ -105,13 +118,46 @@ class PurchaseRequestResource extends Resource
                 ->label('Lihat Detail')
                 ->icon('heroicon-o-eye')
                 ->color('info')
-                ->url(fn ($record) => static::getUrl('view', ['record' => $record]))
-                ->openUrlInModal(),
+                ->modalHeading('Detail Pengajuan Pembelian')
+                ->modalContent(fn ($record) => view('filament.resources.purchase-request.pages.view-purchase-request', ['record' => $record]))
+                ->modalActions([
+                    \Filament\Actions\Action::make('close')
+                        ->label('Tutup')
+                        ->color('gray')
+                        ->close()
+                ]),
             Tables\Actions\EditAction::make()
                 ->visible(fn () => auth()->user()->hasRole('admin')),
+            Tables\Actions\Action::make('approve')
+                ->label('Setujui Pembelian')
+                ->icon('heroicon-o-check')
+                ->color('success')
+                ->visible(fn ($record) => $record->status === 'waiting_approval' && auth()->user()->hasRole('pimpinan'))
+                ->action(function ($record) {
+                    $record->status = 'pembelian_diizinkan';
+                    $record->approved_by = auth()->id();
+                    $record->save();
+                })
+                ->requiresConfirmation(),
+            Tables\Actions\Action::make('reject')
+                ->label('Tolak')
+                ->icon('heroicon-o-x-mark')
+                ->color('danger')
+                ->visible(fn ($record) => $record->status === 'waiting_approval' && auth()->user()->hasRole('pimpinan'))
+                ->form([
+                    Forms\Components\Textarea::make('rejection_reason')
+                        ->label('Alasan Penolakan')
+                        ->required(),
+                ])
+                ->action(function ($record, array $data) {
+                    $record->status = 'rejected';
+                    $record->rejection_reason = $data['rejection_reason'];
+                    $record->save();
+                })
+                ->requiresConfirmation(),
             Tables\Actions\Action::make('receive')
-                ->label('Terima Barang')
-                ->visible(fn ($record) => $record->status === 'approved' && auth()->user()->hasRole('admin'))
+                ->label('Barang Diterima')
+                ->visible(fn ($record) => $record->status === 'pembelian_diizinkan' && auth()->user()->hasRole('admin'))
                 ->action(function ($record) {
                     $item = $record->item;
                     $item->stock += $record->requested_quantity;

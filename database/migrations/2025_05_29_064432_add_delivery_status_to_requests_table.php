@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('requests', function (Blueprint $table) {
+        Schema::table('atk_requests', function (Blueprint $table) {
             $table->enum('delivery_status', ['not_delivered', 'delivered'])->default('not_delivered')->after('status');
             $table->index('delivery_status');
         });
@@ -16,7 +16,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('requests', function (Blueprint $table) {
+        Schema::table('atk_requests', function (Blueprint $table) {
             $table->dropIndex(['delivery_status']);
             $table->dropColumn('delivery_status');
         });
