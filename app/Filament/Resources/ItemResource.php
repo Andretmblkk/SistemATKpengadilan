@@ -30,7 +30,7 @@ class ItemResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'staff', 'pimpinan']);
+        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'pimpinan']);
     }
 
     public static function canCreate(): bool

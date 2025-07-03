@@ -31,7 +31,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin') // ID panel adalah 'admin'
             ->path('admin') // URL akses panel di '/admin'
             ->login() // Mengaktifkan halaman login
-            ->brandName('Sistem ATK PTA Jayapura') // Nama merek aplikasi
+            ->brandName('Sistem Informasi ATK PTA Jayapura') // Nama merek aplikasi
             ->authGuard('web') // Menggunakan guard 'web' untuk autentikasi
             ->colors([
                 'primary' => '#22c55e', // Warna utama panel adalah Amber

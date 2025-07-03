@@ -12,12 +12,21 @@ class NotificationBell extends Widget
     protected static ?int $sort = -1;
 
     public $pendingCount = 0;
+    public $unreadCount = 0;
+    public $showDot = false;
 
     public function mount(): void
     {
-        // Hitung jumlah permintaan yang masih ada item pending
-        $this->pendingCount = AtkRequest::whereHas('requestItems', function($q) {
-            $q->where('status', RequestItem::STATUS_PENDING);
-        })->count();
+        // Tampilkan titik jika ada permintaan barang atau pengajuan pembelian yang statusnya approved atau waiting_approval
+        $this->showDot = 
+            \App\Models\AtkRequest::where('status', 'approved')->exists() ||
+            \App\Models\PurchaseRequest::where('status', 'approved')->exists() ||
+            \App\Models\PurchaseRequest::where('status', 'waiting_approval')->exists();
+    }
+
+    public function markAsRead()
+    {
+        // Tidak perlu logika apapun, hanya reset titik
+        $this->showDot = false;
     }
 } 

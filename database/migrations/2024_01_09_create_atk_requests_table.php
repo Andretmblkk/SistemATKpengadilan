@@ -15,10 +15,18 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->timestamps();
         });
+
+        Schema::table('atk_requests', function (Blueprint $table) {
+            $table->timestamp('read_at')->nullable()->after('status');
+        });
     }
 
     public function down(): void
     {
         Schema::dropIfExists('atk_requests');
+
+        Schema::table('atk_requests', function (Blueprint $table) {
+            $table->dropColumn('read_at');
+        });
     }
 };

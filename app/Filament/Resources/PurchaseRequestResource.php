@@ -30,7 +30,8 @@ class PurchaseRequestResource extends Resource
 
     public static function canEdit($record): bool
     {
-        return auth()->check() && auth()->user()->hasRole('admin');
+        // Admin hanya bisa edit jika status draft atau waiting_approval
+        return auth()->check() && auth()->user()->hasRole('admin') && in_array($record->status, ['draft', 'waiting_approval']);
     }
 
     public static function canDelete($record): bool
@@ -56,7 +57,11 @@ class PurchaseRequestResource extends Resource
                 ->options(\App\Models\Item::all()->pluck('name','id'))
                 ->required()
                 ->searchable()
-                ->preload(),
+                ->preload()
+                ->validationMessages([
+                    'required' => 'Barang wajib dipilih.'
+                ])
+                ->disabled(fn($record) => $record),
             Forms\Components\TextInput::make('current_stock')
                 ->label('Stok Saat Ini')
                 ->disabled(),
@@ -66,7 +71,13 @@ class PurchaseRequestResource extends Resource
             Forms\Components\TextInput::make('requested_quantity')
                 ->label('Jumlah Pengajuan')
                 ->numeric()
-                ->required(fn($record) => $record?->status === 'draft'),
+                ->required(fn($record) => $record?->status === 'draft')
+                ->minValue(1)
+                ->validationMessages([
+                    'required' => 'Jumlah pengajuan wajib diisi.',
+                    'min' => 'Jumlah pengajuan minimal 1.'
+                ])
+                ->disabled(fn($record) => $record && $record->status !== 'draft'),
             Forms\Components\Select::make('status')
                 ->label('Status')
                 ->options([
@@ -94,47 +105,41 @@ class PurchaseRequestResource extends Resource
             Tables\Columns\TextColumn::make('status')
                 ->label('Status')
                 ->badge()
-                ->color(fn ($state) => match ($state) {
+                ->color(fn ($state, $record) => $record->is_stock_updated ? 'primary' : match ($state) {
                     'waiting_approval' => 'warning',
                     'approved'         => 'success',
-                    'pembelian_diizinkan' => 'primary',
-                    'completed'        => 'success',
                     'rejected'         => 'danger',
                     default            => 'secondary',
                 })
-                ->formatStateUsing(fn($state) => match($state) {
+                ->formatStateUsing(fn($state, $record) => $record->is_stock_updated ? 'Stok Diupdate' : match($state) {
                     'draft' => 'Draft',
                     'waiting_approval' => 'Menunggu Persetujuan',
                     'approved' => 'Disetujui',
-                    'pembelian_diizinkan' => 'Pembelian Diizinkan',
                     'rejected' => 'Ditolak',
-                    'completed' => 'Selesai',
                     default => ucfirst($state),
                 }),
         ])
         ->filters([])
         ->actions([
-            Tables\Actions\Action::make('view')
-                ->label('Lihat Detail')
-                ->icon('heroicon-o-eye')
-                ->color('info')
-                ->modalHeading('Detail Pengajuan Pembelian')
-                ->modalContent(fn ($record) => view('filament.resources.purchase-request.pages.view-purchase-request', ['record' => $record]))
-                ->modalActions([
-                    \Filament\Actions\Action::make('close')
-                        ->label('Tutup')
-                        ->color('gray')
-                        ->close()
-                ]),
+            Tables\Actions\Action::make('submit')
+                ->label('Ajukan ke Pimpinan')
+                ->icon('heroicon-o-paper-airplane')
+                ->color('primary')
+                ->visible(fn ($record) => $record->status === 'draft' && auth()->user()->hasRole('admin'))
+                ->action(function ($record) {
+                    $record->status = 'waiting_approval';
+                    $record->save();
+                })
+                ->requiresConfirmation(),
             Tables\Actions\EditAction::make()
-                ->visible(fn () => auth()->user()->hasRole('admin')),
+                ->visible(fn ($record) => auth()->user()->hasRole('admin') && in_array($record->status, ['draft', 'waiting_approval'])),
             Tables\Actions\Action::make('approve')
                 ->label('Setujui Pembelian')
                 ->icon('heroicon-o-check')
                 ->color('success')
                 ->visible(fn ($record) => $record->status === 'waiting_approval' && auth()->user()->hasRole('pimpinan'))
                 ->action(function ($record) {
-                    $record->status = 'pembelian_diizinkan';
+                    $record->status = 'approved';
                     $record->approved_by = auth()->id();
                     $record->save();
                 })
@@ -155,19 +160,19 @@ class PurchaseRequestResource extends Resource
                     $record->save();
                 })
                 ->requiresConfirmation(),
-            Tables\Actions\Action::make('receive')
-                ->label('Barang Diterima')
-                ->visible(fn ($record) => $record->status === 'pembelian_diizinkan' && auth()->user()->hasRole('admin'))
+            Tables\Actions\Action::make('update_stock')
+                ->label('Update Stok')
+                ->icon('heroicon-o-arrow-up')
+                ->color('success')
+                ->visible(fn ($record) => $record->status === 'approved' && !$record->is_stock_updated && auth()->user()->hasRole('admin'))
                 ->action(function ($record) {
                     $item = $record->item;
                     $item->stock += $record->requested_quantity;
                     $item->save();
-
-                    $record->status = 'completed';
+                    $record->is_stock_updated = true;
                     $record->save();
                 })
-                ->requiresConfirmation()
-                ->color('success'),
+                ->requiresConfirmation(),
         ])
         ->bulkActions([
             Tables\Actions\DeleteBulkAction::make()
@@ -187,22 +192,11 @@ class PurchaseRequestResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $pendingCount = \App\Models\PurchaseRequest::where('status', 'waiting_approval')->count();
-        return $pendingCount > 0 ? (string) $pendingCount : null;
+        return null;
     }
 
     public static function getNavigationBadgeColor(): ?string
     {
-        $total = \App\Models\PurchaseRequest::count();
-        $pending = \App\Models\PurchaseRequest::where('status', 'waiting_approval')->count();
-        $approved = \App\Models\PurchaseRequest::where('status', 'approved')->count();
-        if ($pending > 0) {
-            return 'danger'; // merah
-        } elseif ($approved > 0 && $approved == $total) {
-            return 'success'; // hijau
-        } elseif ($approved > 0 && $pending == 0) {
-            return 'warning'; // kuning (campuran)
-        }
-        return 'secondary';
+        return null;
     }
 } 

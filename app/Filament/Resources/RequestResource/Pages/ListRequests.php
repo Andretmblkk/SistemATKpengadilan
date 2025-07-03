@@ -47,11 +47,18 @@ class ListRequests extends ListRecords
             $item->approved_at = now();
             $item->approved_by = auth()->id();
             $item->save();
+
+            // Kurangi stok barang
+            $itemModel = $item->item;
+            if ($itemModel) {
+                $itemModel->stock = $itemModel->stock - $item->quantity;
+                $itemModel->save();
+            }
             
             DB::commit();
             Notification::make()
                 ->title('Berhasil')
-                ->body('Item disetujui.')
+                ->body('Item disetujui dan stok otomatis dikurangi.')
                 ->success()
                 ->send();
         } catch (\Exception $e) {

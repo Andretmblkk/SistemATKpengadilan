@@ -31,18 +31,34 @@ class UserResource extends Resource
             ->schema([
                 TextInput::make('name')
                     ->required()
-                    ->label('Nama'),
+                    ->label('Nama')
+                    ->maxLength(100)
+                    ->validationMessages([
+                        'required' => 'Nama wajib diisi.',
+                        'max' => 'Nama maksimal 100 karakter.'
+                    ]),
                 TextInput::make('email')
                     ->email()
-                    ->required(),
+                    ->required()
+                    ->unique(User::class, 'email', ignoreRecord: true)
+                    ->label('Email')
+                    ->validationMessages([
+                        'unique' => 'Email sudah terdaftar, silakan gunakan email lain.',
+                        'required' => 'Email wajib diisi.',
+                        'email' => 'Format email tidak valid.'
+                    ]),
                 TextInput::make('password')
                     ->password()
                     ->dehydrateStateUsing(fn ($state) => Hash::make($state))
                     ->required(fn (string $context): bool => $context === 'create')
-                    ->label('Kata Sandi'),
+                    ->minLength(6)
+                    ->label('Kata Sandi')
+                    ->validationMessages([
+                        'required' => 'Kata sandi wajib diisi.',
+                        'min' => 'Kata sandi minimal 6 karakter.'
+                    ]),
                 Select::make('roles')
                     ->label('Peran')
-                    ->multiple()
                     ->options(Role::all()->pluck('name', 'name'))
                     ->preload(),
             ]);

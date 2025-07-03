@@ -143,13 +143,30 @@ class ViewRequest extends ViewRecord
             $item->approved_by = auth()->id();
             $item->save();
 
-            // Kurangi stok item sesuai jumlah yang disetujui
+            // Debug log sebelum update stok
             $itemModel = $item->item;
+            \Log::info('DEBUG APPROVE', [
+                'item_id' => $item->id,
+                'item_model_id' => $itemModel?->id,
+                'stock_before' => $itemModel?->stock,
+                'qty' => $item->quantity,
+            ]);
+
             if ($itemModel) {
-                $itemModel->stock = max(0, $itemModel->stock - $item->quantity);
-                $itemModel->save(); // Akan trigger observer otomatis
+                $itemModel->stock = $itemModel->stock - $item->quantity;
+                $itemModel->save();
+                \Log::info('DEBUG APPROVE AFTER', [
+                    'item_id' => $item->id,
+                    'item_model_id' => $itemModel->id,
+                    'stock_after' => $itemModel->stock,
+                ]);
+            } else {
+                Notification::make()
+                    ->title('Gagal')
+                    ->body('Relasi item tidak ditemukan. Tidak bisa update stok.')
+                    ->danger()
+                    ->send();
             }
-            
             DB::commit();
             Notification::make()
                 ->title('Berhasil')
@@ -242,6 +259,47 @@ class ViewRequest extends ViewRecord
             Notification::make()
                 ->title('Berhasil')
                 ->body('Status item diubah menjadi boleh diambil.')
+                ->success()
+                ->send();
+            $this->record->refresh();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Notification::make()
+                ->title('Gagal')
+                ->body('Terjadi kesalahan: ' . $e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    public function approveAll()
+    {
+        $items = $this->record->requestItems()->where('status', 'pending')->get();
+        if ($items->isEmpty()) {
+            Notification::make()
+                ->title('Gagal')
+                ->body('Tidak ada item yang bisa disetujui.')
+                ->danger()
+                ->send();
+            return;
+        }
+        DB::beginTransaction();
+        try {
+            foreach ($items as $item) {
+                $item->status = 'approved';
+                $item->approved_at = now();
+                $item->approved_by = auth()->id();
+                $item->save();
+                $itemModel = $item->item;
+                if ($itemModel) {
+                    $itemModel->stock = max(0, $itemModel->stock - $item->quantity);
+                    $itemModel->save();
+                }
+            }
+            DB::commit();
+            Notification::make()
+                ->title('Berhasil')
+                ->body('Semua item berhasil disetujui dan stok otomatis dikurangi.')
                 ->success()
                 ->send();
             $this->record->refresh();

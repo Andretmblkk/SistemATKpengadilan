@@ -103,7 +103,12 @@ class RequestResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with(['requestItems.item', 'user']))
+            ->modifyQueryUsing(function ($query) {
+                $query->with(['requestItems.item', 'user']);
+                if (auth()->user()->hasRole('staff')) {
+                    $query->where('user_id', auth()->id());
+                }
+            })
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Staff')
@@ -221,30 +226,11 @@ class RequestResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $pendingCount = \App\Models\AtkRequest::whereHas('requestItems', function($q) {
-            $q->where('status', \App\Models\RequestItem::STATUS_PENDING);
-        })->count();
-        return $pendingCount > 0 ? (string) $pendingCount : null;
+        return null;
     }
 
     public static function getNavigationBadgeColor(): ?string
     {
-        $total = \App\Models\AtkRequest::count();
-        $pending = \App\Models\AtkRequest::whereHas('requestItems', function($q) {
-            $q->where('status', \App\Models\RequestItem::STATUS_PENDING);
-        })->count();
-        $approved = \App\Models\AtkRequest::whereDoesntHave('requestItems', function($q) {
-            $q->where('status', \App\Models\RequestItem::STATUS_PENDING);
-        })->whereHas('requestItems', function($q) {
-            $q->where('status', \App\Models\RequestItem::STATUS_APPROVED);
-        })->count();
-        if ($pending > 0) {
-            return 'danger'; // merah
-        } elseif ($approved > 0 && $approved == $total) {
-            return 'success'; // hijau
-        } elseif ($approved > 0 && $pending == 0) {
-            return 'warning'; // kuning (campuran)
-        }
-        return 'secondary';
+        return null;
     }
 }

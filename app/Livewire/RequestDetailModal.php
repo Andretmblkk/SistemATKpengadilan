@@ -27,6 +27,12 @@ class RequestDetailModal extends Component
         $requestItem = \App\Models\RequestItem::find($itemId);
         if ($requestItem) {
             $requestItem->update(['status' => 'disetujui']);
+            // Kurangi stok barang
+            $itemModel = $requestItem->item;
+            if ($itemModel) {
+                $itemModel->stock = $itemModel->stock - $requestItem->quantity;
+                $itemModel->save();
+            }
             // Update status utama permintaan
             $parentRequest = $requestItem->request;
             $menunggu = $parentRequest->requestItems()->where('status', 'menunggu')->count();
@@ -44,7 +50,7 @@ class RequestDetailModal extends Component
             }
             $parentRequest->save();
             $this->loadRequest(); // Reload data
-            session()->flash('message', 'Barang berhasil disetujui');
+            session()->flash('message', 'Barang berhasil disetujui dan stok otomatis dikurangi');
         }
     }
 
